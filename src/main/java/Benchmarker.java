@@ -1,3 +1,4 @@
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -14,18 +15,19 @@ public class Benchmarker {
 
     public static void main(String[] args) throws Exception {
 
+
         // Construct a list of components from the config file
-        String config = new String(Files.readAllBytes(Paths.get("/home/paulius/benchmarker/config.yaml")));
+        String componentsText = new String(Files.readAllBytes(Paths.get("/home/paulius/benchmarker/components.yaml")));
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         CollectionType listType = mapper.getTypeFactory().constructCollectionType(ArrayList.class, Component.class);
-        List<Component> components = mapper.readValue(config, listType);
-        // TODO: use all elements of the list
+        List<Component> components = mapper.readValue(componentsText, listType);
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = Configuration.getInstance();
 
-        DataStream<String> dataStream = env
-                .readTextFile("/home/paulius/benchmarker/input.txt");
-                .flatMap(components.get(0));
+        DataStream<String> dataStream = env.socketTextStream(config.hostname, config.portNumber);
+        for (Component component : components)
+            dataStream = dataStream.flatMap(component);
         dataStream.print();
 
         env.execute("Benchmarker");
