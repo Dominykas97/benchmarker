@@ -11,9 +11,9 @@ public class Component extends RichMapFunction<String, String> {
     public int memoryUsage; // how much memory to fill (in MB)
     public int outputSize; // the size of the output data (in KB)
     private transient Meter meter;
+    // TODO: actual computation instead of waiting
     // TODO: support more than ~2 GB memory usage using multiple arrays
     // TODO: do I need to subtract the string size from total memory?
-    // TODO: time span for the meter
 
     @Override
     public void open(Configuration config) {

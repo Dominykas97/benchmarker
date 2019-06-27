@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  control:
+    image: control
+    expose:
+      - "9998"
+    command: control
+
+  jobmanager:
+    image: flink
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  taskmanager:
+    image: benchmarker
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+      - control
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+      - "control:control"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
