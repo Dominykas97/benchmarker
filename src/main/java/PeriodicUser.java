@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 public class PeriodicUser {
 
     public static void main(String[] args) throws Exception {
-        Configuration config = Configuration.getInstance();
+        Config config = Config.getInstance();
         ServerSocket server = new ServerSocket(config.portNumber);
         Socket socket = server.accept();
         System.out.println("Connection established");

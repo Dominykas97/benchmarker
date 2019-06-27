@@ -1,4 +1,4 @@
 hostname: localhost
-portNumber: 9999
-numMessages: 3
+portNumber: 9998
+numMessages: 5
 interMessageTime: 500
