@@ -11,6 +11,6 @@ public class Config {
 
     static Config getInstance() throws Exception {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        return mapper.readValue(new File("./config.yaml"), Config.class);
+        return mapper.readValue(new File("./global.yaml"), Config.class);
     }
 }

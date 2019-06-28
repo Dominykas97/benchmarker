@@ -1,0 +1,3 @@
+FROM flink
+ADD config/flink-conf.yaml conf/
+RUN mv opt/flink-metrics-prometheus-* lib/

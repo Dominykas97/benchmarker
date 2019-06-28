@@ -1,9 +1,10 @@
-FROM openjdk:8
+FROM benchmarker
 
-ADD config.yaml ./
+ADD config/components.yaml ./
+ADD config/global.yaml ./
 ADD docker/control-entrypoint.sh ./
 ADD target/benchmarker-0.1.jar ./
 
 RUN chmod +x control-entrypoint.sh
 
-ENTRYPOINT [ "./control-entrypoint.sh" ]
+ENTRYPOINT ["./control-entrypoint.sh"]
