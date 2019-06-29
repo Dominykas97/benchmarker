@@ -5,6 +5,8 @@ ADD config/global.yaml ./
 ADD docker/control-entrypoint.sh ./
 ADD target/benchmarker-0.1.jar ./
 
-RUN chmod +x control-entrypoint.sh
+RUN chmod +x control-entrypoint.sh && \
+    chgrp -Rf root /opt/flink && \
+    chmod -Rf 775 /opt/flink
 
 ENTRYPOINT ["./control-entrypoint.sh"]

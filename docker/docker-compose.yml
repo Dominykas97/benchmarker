@@ -1,25 +1,29 @@
-version: "3.7"
+version: "3"
 services:
-  jobmanager:
-    image: benchmarker
-    expose:
-      - "6123"
-      - "9250"
+  control:
+    image: dilkas/benchmarker-control
     ports:
-      - "8081:8081"
+      - "9998:9998"
+    restart: "no"
+
+  jobmanager:
+    image: dilkas/benchmarker-flink
+    ports:
+      - "6123:6123"
+      - "6124:6124"
+      - "8081:8081" # Web UI
+      - "9250:9250" # for Prometheus
     command: jobmanager
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile.bench
+    restart: "no"
 
   taskmanager:
-    image: benchmarker
-    expose:
-      - "6121"
-      - "6122"
-      - "9250"
+    image: dilkas/benchmarker-flink
+    ports:
+      - "6121:6121"
+      - "6122:6122"
+      - "9250:9250" # for Prometheus
     depends_on:
       - jobmanager
       - control
@@ -28,22 +32,15 @@ services:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
     logging:
       driver: none
+    restart: "no"
 
-  control:
-    image: control
-    expose:
-      - "9998"
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile.control
-
-  prometheus:
-    image: prometheus
-    ports:
-      - "9090:9090"
-    depends_on:
-      - jobmanager
-      - taskmanager
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile.prom
+#  prometheus:
+#    image: prometheus
+#    ports:
+#      - "9090:9090"
+#    depends_on:
+#      - jobmanager
+#      - taskmanager
+#    build:
+#      context: ../
+#      dockerfile: docker/Dockerfile.prom
