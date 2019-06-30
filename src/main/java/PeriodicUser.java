@@ -13,12 +13,11 @@ public class PeriodicUser {
         System.out.println("Connection established");
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         for (int i = 0; i < config.numMessages; i++) {
-            System.out.print("Sending " + (i+1) + "/" + config.numMessages + " message");
+            System.out.println("Sending " + (i+1) + "/" + config.numMessages + " message");
             out.println(".");
             if (i < config.numMessages - 1)
                 TimeUnit.MILLISECONDS.sleep(config.interMessageTime);
         }
-        System.out.println();
         out.close();
         socket.close();
         server.close();

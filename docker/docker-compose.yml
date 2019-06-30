@@ -8,6 +8,8 @@ services:
 
   jobmanager:
     image: dilkas/benchmarker-flink
+    expose:
+      - "9250"
     ports:
       - "6123:6123"
       - "6124:6124"
@@ -20,6 +22,8 @@ services:
 
   taskmanager:
     image: dilkas/benchmarker-flink
+    expose:
+      - "9250"
     ports:
       - "6121:6121"
       - "6122:6122"
@@ -35,12 +39,6 @@ services:
     restart: "no"
 
 #  prometheus:
-#    image: prometheus
+#    image: dilkas/benchmarker-prom
 #    ports:
-#      - "9090:9090"
-#    depends_on:
-#      - jobmanager
-#      - taskmanager
-#    build:
-#      context: ../
-#      dockerfile: docker/Dockerfile.prom
+#      - "9090:9090" # Web UI
