@@ -1,8 +1,8 @@
-all: package bench control up
+all: package bench control prom up
 
 clean:
 	oc delete sa,clusterrolebinding,route,svc,secret,deployment,configmap -l app=prometheus -n myproject --as=system:admin
-	oc delete dc,is,svc,po,deployment.apps,configmaps --all
+	oc delete dc,is,svc,deployment.apps,configmaps,po --all
 
 package:
 	mvn clean package
@@ -16,7 +16,7 @@ control:
 	docker push dilkas/benchmarker-control
 
 prom:
-	minishift addon apply prometheus --addon-env namespace=myproject
+	-minishift addon apply prometheus --addon-env namespace=myproject
 
 up:
 	cd docker && kompose up --provider=openshift

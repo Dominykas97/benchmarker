@@ -1,4 +1,4 @@
 hostname: control
 portNumber: 9998
 numMessages: 5
-interMessageTime: 500
+interMessageTime: 500 # in ms

@@ -1,6 +1,6 @@
+- cpuTime: 10000 # in ms
+  memoryUsage: 512 # in MB
+  outputSize: 262144 # in KB
 - cpuTime: 1
   memoryUsage: 512
   outputSize: 10000
-#- cpuTime: 1
-#  memoryUsage: 512
-#  outputSize: 10000
