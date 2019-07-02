@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: taskmanager
+  name: taskmanager
+spec:
+  containers:
+  - args:
+    - taskmanager
+    env:
+    - name: JOB_MANAGER_RPC_ADDRESS
+      value: jobmanager
+    image: dilkas/benchmarker-flink
+    name: taskmanager
+    ports:
+    - containerPort: 6121
+    - containerPort: 6122
+    - containerPort: 9250
+    resources: {}
+  restartPolicy: Never
+status: {}
