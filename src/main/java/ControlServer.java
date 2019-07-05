@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class ControlServer {
@@ -65,18 +66,20 @@ public class ControlServer {
         // Get the JSON performance data
         String timeInterval = "1h";
 
-        String metric = "flink_taskmanager_job_task_operator_componentThroughput";
-        URL prometheus = new URL("https://" + config.prometheusHostname +
-                "/api/v1/query?query=" + metric + "[" + timeInterval + "]");
-        HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        String data = reader.readLine();
-        reader.close();
+        for (int i = 0; i < config.metrics.size(); i++) {
+            URL prometheus = new URL("https://" + config.prometheusHostname +
+                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + timeInterval + "]");
+            HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String data = reader.readLine();
+            reader.close();
 
-        // Write it to a file
-        System.out.println(data);
-        BufferedWriter writer = new BufferedWriter(new FileWriter("data/output.json"));
-        writer.write(data);
-        writer.close();
+            // Write it to a file
+            System.out.println(data);
+            BufferedWriter writer = new BufferedWriter(new FileWriter("data/" +
+                    config.metrics.get(i).filename + ".json"));
+            writer.write(data);
+            writer.close();
+        }
     }
 }
