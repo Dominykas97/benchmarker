@@ -34,6 +34,7 @@ public class Component extends RichMapFunction<String, String> {
         int stringLength = (int) ((outputSize << 10) / BYTES_PER_CHAR);
         int arraySize = (memoryUsage << 20) - BASE_MEMORY_CONSUMPTION - outputSize;
         assert stringLength <= arraySize;
+        assert arraySize >= 0;
 
         // Fill the required amount of memory with random data
         byte[] memory = new byte[arraySize];

@@ -1,4 +1,5 @@
-hostname: control
-portNumber: 9998
+controlHostname: control
+controlPort: 9998
 numMessages: 5
 interMessageTime: 500 # in ms
+prometheusHostname: prometheus

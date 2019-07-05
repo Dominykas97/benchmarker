@@ -19,6 +19,4 @@ spec:
     - containerPort: 6124
     - containerPort: 8081
     - containerPort: 9250
-    resources: {}
   restartPolicy: Never
-status: {}

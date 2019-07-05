@@ -14,7 +14,7 @@ public class Benchmarker {
 
     public static void main(String[] args) throws Exception {
         // Construct a list of components from the config file
-        String componentsText = new String(Files.readAllBytes(Paths.get("./components.yaml")));
+        String componentsText = new String(Files.readAllBytes(Paths.get("config/components.yaml")));
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         CollectionType listType = mapper.getTypeFactory().constructCollectionType(ArrayList.class, Component.class);
         List<Component> components = mapper.readValue(componentsText, listType);
@@ -22,8 +22,8 @@ public class Benchmarker {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         Config config = Config.getInstance();
 
-        System.out.println("Connecting to the control server " + config.hostname + ":" + config.portNumber);
-        DataStream<String> dataStream = env.socketTextStream(config.hostname, config.portNumber);
+        System.out.println("Connecting to the control server " + config.controlHostname + ":" + config.controlPort);
+        DataStream<String> dataStream = env.socketTextStream(config.controlHostname, config.controlPort);
         for (Component component : components)
             dataStream = dataStream.map(component);
         dataStream.print();

@@ -1,7 +1,5 @@
-FROM benchmarker
+FROM dilkas/benchmarker-flink
 
-ADD config/components.yaml ./
-ADD config/global.yaml ./
 ADD docker/control-entrypoint.sh ./
 ADD target/benchmarker-0.1.jar ./
 
