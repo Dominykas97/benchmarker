@@ -1,67 +1,60 @@
-from bs4 import BeautifulSoup
 import json
 import matplotlib.pyplot as plt
-import requests
+import subprocess
+import yaml
 
-host = 'https://prometheus-myproject.192.168.42.234.nip.io' # TODO: Query oc for this
-metrics = [('Throughput', 'flink_taskmanager_job_task_operator_componentThroughput'),
-           ('Heap Usage', 'flink_taskmanager_Status_JVM_Memory_Heap_Used'),
-           ('CPU Load', 'flink_taskmanager_Status_JVM_CPU_Load')]
-time_interval = '1m' # >= the amount of time between 'oc create' and all the work terminating
-login_info = {'username': 'developer', 'password': '?????'}
-session = requests.Session()
+HOSTFOLDER_NAME = 'hostfolder'
+PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
+LOCAL_DIR_WITH_DATA = '../benchmarker_data'
+LOCAL_DIR_WITH_PLOTS = 'plots'
 
-# 1. Try to retrieve JSON data
-# 2. If success, go to ...
-# 3. If there is a button saying 'Sign in with an OpenShift account'
-# 4. Press on it <form method="GET" action="/oauth/start">
-# 4.5. <form action="/login" method="POST"> (with hidden values!)
-# 5. Enter 'developer' into 'inputUsername'
-# 6. Enter the password into 'inputPassword'
-# 7. Submit
-# 8. That takes us to the data (?)
+# Read in a list of metrics
+with open('config/global.yaml', 'r') as config:
+    metrics = yaml.safe_load(config)['metrics']
 
-# Temp code for logging things
-import requests
-import logging
-import http.client as http_client
-http_client.HTTPConnection.debuglevel = 1
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.DEBUG)
-requests_log.propagate = True
+#subprocess.run(['make', 'clean'])
+#subprocess.run(['make', 'up'])
 
-for metric_name, metric_id in metrics[:1]:
-    path = '/api/v1/query?query=' + metric_id + '[' + time_interval + ']'
-    first_page = session.get(host + path, verify=False).text
-    login_page = session.get(host + '/oauth/start', params={'rd': path}, verify=False)
-    print('*****Cookies:')
-    print(session.cookies.get_dict())
-    soup = BeautifulSoup(login_page.text, features='html5lib')
-    hidden_values = soup.find_all('input', type='hidden')
-    hidden_dict = dict((tag.get('name'), tag.get('value')) for tag in hidden_values)
-    print('**********Referer: ' + login_page.url)
-    cookie = session.cookies.get_dict()['csrf']
-    origin = login_page.url[:login_page.url.find('login')-1]
-    ua = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'
-    sign_in_page = session.post(host + '/login', data={**login_info, **hidden_dict}, verify=False, cookies={'csrf': cookie},
-                                headers={'Referer': login_page.url, 'Origin': origin, 'Authority': 'Bearer jtTqXIty8lsbSiQQEzCPPMlKl0jJFOzSbC2jXBt5LMc', 'User-Agent': ua, 'X-CSRF-Token': 'xxx'})
-    print(sign_in_page.request.headers)
-    print(sign_in_page.history)
+# Wait until the control server finishes
+#while True:
+#    status = subprocess.run(['oc', 'get', 'po', 'control'], stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
+    # NOTE: if the pod fails, this runs forever
+#    if status == 'Completed':
+#        break
 
+# Move files from the persistent volume to the host folder using MiniShift SSH
+#for metric in metrics:
+#    command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
+#        HOSTFOLDER_NAME, metric['filename'], PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME,
+#        metric['filename'])
+#    print(command)
+#    subprocess.Popen(command, shell=True)
 
-"""
-with open('sample.json') as sample_file:
-    data = json.loads(sample_file.read())
+# Read in the performance data
+data = {}
+first_timestamp = float('inf')
+for metric in metrics:
+    with open('{}/{}.json'.format(LOCAL_DIR_WITH_DATA, metric['filename'])) as f:
+        data[metric['filename']] = json.loads(f.read())
+    first_timestamp = min(first_timestamp, min(series['values'][0][0]
+                                               for series in data[metric['filename']]['data']['result']))
 
-for series in data['data']['result']:
-    x = []
-    y = []
-    for timestamp, value in series['values']:
-        x.append(timestamp)
-        y.append(float(value))
-    plt.plot(x, y)
-plt.xlabel('time')
-plt.show()
-"""
+def transform_value(metric_name, value):
+    'Transform heap usage from bytes into MB'
+    return int(value) >> 20 if metric_name == 'heap' else float(value)
+
+for i, metric in enumerate(metrics):
+    plt.figure(i + 1)
+    for series in data[metric['filename']]['data']['result']:
+        x = []
+        y = []
+        for timestamp, value in series['values']:
+            x.append(timestamp - first_timestamp)
+            y.append(transform_value(metric['filename'], value))
+        plt.plot(x, y)
+    #add_expected_line_to_plot(metric['filename'], )
+    plt.title(metric['name'])
+    plt.xlabel('time')
+    plt.savefig('{}/{}.png'.format(LOCAL_DIR_WITH_PLOTS, metric['filename']))
+
+# TODO: Compare them with estimated numbers (if available)

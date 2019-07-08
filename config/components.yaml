@@ -1,6 +1,6 @@
-- cpuTime: 0 # in ms
+- cpuTime: 5000 # in ms
   memoryUsage: 100 # in MB
   outputSize: 1 # in KB
-#- cpuTime: 1
-#  memoryUsage: 512
-#  outputSize: 10000
+- cpuTime: 5000
+  memoryUsage: 200
+  outputSize: 1

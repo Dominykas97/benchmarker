@@ -2,11 +2,15 @@ controlHostname: control
 controlPort: 9998
 numMessages: 5
 interMessageTime: 500 # in ms
+totalExpectedTime: 5m
 prometheusHostname: prometheus
 metrics:
-  - filename: throughput
+  - name: Throughput
+    filename: throughput
     query: flink_taskmanager_job_task_operator_componentThroughput
-  - filename: heap
+  - name: Heap Usage (MB)
+    filename: heap
     query: flink_taskmanager_Status_JVM_Memory_Heap_Used
-  - filename: cpu
+  - name: CPU Load
+    filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load

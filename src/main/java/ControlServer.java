@@ -4,7 +4,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class ControlServer {
@@ -48,6 +47,7 @@ public class ControlServer {
         System.out.println("Control server has started");
         Socket socket = server.accept();
         System.out.println("Connection established");
+
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         for (int i = 0; i < config.numMessages; i++) {
             System.out.println("Sending " + (i+1) + "/" + config.numMessages + " message");
@@ -63,22 +63,24 @@ public class ControlServer {
         trustAllCertificates();
         disableHostnameVerification();
 
-        // Get the JSON performance data
-        String timeInterval = "1h";
-
         for (int i = 0; i < config.metrics.size(); i++) {
+            // Get the JSON performance data and save it
             URL prometheus = new URL("https://" + config.prometheusHostname +
-                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + timeInterval + "]");
+                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + config.totalExpectedTime + "]");
             HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
             BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String data = reader.readLine();
             reader.close();
 
             // Write it to a file
-            System.out.println(data);
-            BufferedWriter writer = new BufferedWriter(new FileWriter("data/" +
-                    config.metrics.get(i).filename + ".json"));
-            writer.write(data);
+            String filename = "data/" + config.metrics.get(i).filename + ".json";
+            File file = new File(filename);
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+            }
+            FileWriter writer = new FileWriter(file);
+            writer.write(data + "\n");
             writer.close();
         }
     }

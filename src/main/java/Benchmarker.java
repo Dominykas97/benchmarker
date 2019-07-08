@@ -27,7 +27,6 @@ public class Benchmarker {
         for (Component component : components)
             dataStream = dataStream.map(component);
         dataStream.print();
-
-        env.execute("Benchmarker");
+        env.execute();
     }
 }

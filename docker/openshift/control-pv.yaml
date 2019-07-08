@@ -4,9 +4,9 @@ metadata:
   name: control-pv
 spec:
   capacity:
-    storage: 1Mi
+    storage: 10Mi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: /home/docker/benchmarker_data
