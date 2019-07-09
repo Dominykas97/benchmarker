@@ -11,7 +11,6 @@ public class Config {
     public int interMessageTime;
     public String prometheusHostname;
     public List<Metric> metrics;
-    public String totalExpectedTime; // if unsure, overestimate it (e.g., 1m, 1h, etc.)
 
     static Config getInstance() throws Exception {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

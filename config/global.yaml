@@ -1,8 +1,7 @@
 controlHostname: control
 controlPort: 9998
-numMessages: 5
+numMessages: 3
 interMessageTime: 500 # in ms
-totalExpectedTime: 5m
 prometheusHostname: prometheus
 metrics:
   - name: Throughput

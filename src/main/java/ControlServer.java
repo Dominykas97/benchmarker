@@ -18,17 +18,18 @@ public class ControlServer {
                     public X509Certificate[] getAcceptedIssuers() {
                         return null;
                     }
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                    }
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                    }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
                 }
         };
+
+        System.out.println("Created a TrustManager");
 
         // Install the all-trusting trust manager
         SSLContext sc = SSLContext.getInstance("TLSv1.2");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        System.out.println("Installed the TrustManager");
     }
 
     private static void disableHostnameVerification() {
@@ -41,47 +42,60 @@ public class ControlServer {
     }
 
     public static void main(String[] args) throws Exception {
-        // Send messages to the Flink app
         Config config = Config.getInstance();
-        ServerSocket server = new ServerSocket(config.controlPort);
-        System.out.println("Control server has started");
-        Socket socket = server.accept();
-        System.out.println("Connection established");
 
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        for (int i = 0; i < config.numMessages; i++) {
-            System.out.println("Sending " + (i+1) + "/" + config.numMessages + " message");
-            out.println(".");
-            if (i < config.numMessages - 1)
-                TimeUnit.MILLISECONDS.sleep(config.interMessageTime);
+        // Send messages to the Flink app
+        try (
+                ServerSocket server = new ServerSocket(config.controlPort);
+                Socket socket = server.accept();
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        ) {
+            for (int i = 0; i < config.numMessages; i++) {
+                System.out.println("Sending " + (i + 1) + "/" + config.numMessages + " message");
+                out.println(".");
+                if (i < config.numMessages - 1)
+                    TimeUnit.MILLISECONDS.sleep(config.interMessageTime);
+            }
         }
-        out.close();
-        socket.close();
-        server.close();
+
+        // Re-open the server and read the job's runtime
+        long runtime;
+        try (
+                ServerSocket server = new ServerSocket(config.controlPort);
+                Socket socket = server.accept();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        ) {
+            long runtimeMs = Long.parseLong(reader.readLine());
+            runtime = TimeUnit.MINUTES.convert(runtimeMs, TimeUnit.MILLISECONDS) + 1;
+            System.out.println("The job took about " + runtime + " min (" + runtimeMs + " ms)");
+        }
 
         // Since Prometheus uses HTTPS without a valid certificate, we need to disable some stuff
         trustAllCertificates();
         disableHostnameVerification();
 
+        System.out.println("Recording " + config.metrics.size() + " metrics");
         for (int i = 0; i < config.metrics.size(); i++) {
-            // Get the JSON performance data and save it
+            // Get the JSON performance data
             URL prometheus = new URL("https://" + config.prometheusHostname +
-                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + config.totalExpectedTime + "]");
+                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + runtime + "m]");
+            System.out.println("Connecting to " + prometheus);
             HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            String data = reader.readLine();
-            reader.close();
+            BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String data = br.readLine();
+            br.close();
 
             // Write it to a file
             String filename = "data/" + config.metrics.get(i).filename + ".json";
+
+            System.out.println("Writing this data to " + filename + ":");
+            System.out.println(data);
+
             File file = new File(filename);
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-            }
             FileWriter writer = new FileWriter(file);
-            writer.write(data + "\n");
+            writer.write(data);
             writer.close();
         }
+        System.out.println("Control server is terminating");
     }
 }

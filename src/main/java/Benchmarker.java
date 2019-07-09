@@ -1,3 +1,5 @@
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -7,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
@@ -27,6 +30,14 @@ public class Benchmarker {
         for (Component component : components)
             dataStream = dataStream.map(component);
         dataStream.print();
-        env.execute();
+        JobExecutionResult result = env.execute();
+
+        // Send the server the job's running time
+        try (
+                Socket socket = new Socket(config.controlHostname, config.controlPort);
+                PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
+        ) {
+            pw.write(result.getNetRuntime() + "\n");
+        }
     }
 }
