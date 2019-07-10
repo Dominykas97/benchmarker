@@ -13,25 +13,24 @@ LOCAL_DIR_WITH_PLOTS = 'plots'
 with open('config/global.yaml', 'r') as config:
     metrics = yaml.safe_load(config)['metrics']
 
-#subprocess.Popen('minishift ssh "rm benchmarker_data/*; rm hostfolder/*"', shell=True)
-#subprocess.run(['make', 'clean'])
-#subprocess.run(['make', 'up'])
+subprocess.run(['make', 'clean'])
+subprocess.run(['make', 'up'])
 
 # Wait until the control server finishes
 # NOTE: if the pod fails, this will run forever
-#while True:
-#    status = subprocess.run(['oc', 'get', 'po', 'control'], stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
-#    if status == 'Completed':
-#        break
+while True:
+    status = subprocess.run(['oc', 'get', 'po', 'control'], stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
+    if status == 'Completed':
+        break
 
 # Move files from the persistent volume to the host folder using MiniShift SSH
-#for metric in metrics:
-#    command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
-#        HOSTFOLDER_NAME, metric['filename'], PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME,
-#        metric['filename'])
-#    print(command)
-#    subprocess.Popen(command, shell=True)
-#time.sleep(2) # Wait a bit, making sure that the files have time to move from the VM to the local machine
+for metric in metrics:
+    command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
+        HOSTFOLDER_NAME, metric['filename'], PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME,
+        metric['filename'])
+    print(command)
+    subprocess.Popen(command, shell=True)
+time.sleep(2) # Wait a bit, making sure that the files have time to move from the VM to the local machine
 
 # Read in the performance data
 data = {}
