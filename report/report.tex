@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{mathtools}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
 \usepackage{fullpage}
@@ -6,6 +7,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{tikz-uml}
+\usepackage[binary-units = true]{siunitx}
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
@@ -16,8 +18,6 @@
 %\begin{abstract}
 %\end{abstract}
 
-\section{Introduction}
-
 % TODO:
 % Motivation
 % OpenShift, MiniShift
@@ -25,7 +25,7 @@
 % Flink
 % Docker
 
-\section{Architecture}
+\section{Architecture and Implementation}
 
 Two simple Dockerfiles were created. The first one is used for TaskManager and
 JobManager pods and extends the original Flink Docker image by enabling
@@ -51,7 +51,10 @@ JobManager, and TaskManager, establishing open ports as pictured in
 Figure~\ref{fig:uml}). This file was then converted to OpenShift manifestos
 using Kompose\footnote{\url{http://kompose.io/}}. The generated manifestos,
 relevant network connections, and other dependencies are displayed in
-Figure~\ref{fig:uml}.
+Figure~\ref{fig:uml}. The entire system can then be updated and deployed by
+generating a new JAR file using Maven, building and uploading the two
+Dockerfiles, and recreating all components of the OpenShift configuration, as
+described by the manifestos.
 
 Prometheus add-on for
 MiniShift\footnote{\url{https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus}}
@@ -63,11 +66,58 @@ TaskManager, both on port 9250.
 
 Configuration Files component represents a ConfigMap created using the
 \texttt{oc} command that contains two configuration files, \texttt{global.yaml}
-and \texttt{components.yaml}. The former has the following...
-% TODO: describe the config files
+and \texttt{components.yaml} (see Figures \ref{fig:global} and
+\ref{fig:components} for examples). The former contains basic networking
+information along with two parameters that control the experiment
+(\texttt{experimentLength} and \texttt{messagesPerSecond}) and a list of
+metrics. The two experiment-specific parameters together define the frequency
+and number of messages that the \texttt{ControlServer} will send to the
+\texttt{Benchmarker}. Each metric is described with three properties:
+\texttt{name}, \texttt{filename}, and \texttt{query}. The last one corresponds
+to the name of the property as defined by Prometheus, while the other two are
+used for data storage and plotting. The \texttt{components.yaml} configuration
+file, on the other hand describes a sequence of processing stages, each with its
+own CPU usage time, memory usage, and output data size (i.e., the amount of data
+passed to the next stage).
 
-% TODO: finish explaining the diagram
-% TODO: how do we start this (i.e., describe the Makefile)
+\begin{figure}
+  \centering
+\begin{lstlisting}[escapeinside={(*}{*)}]
+controlHostname: control
+controlPort: 9998
+prometheusHostname: prometheus
+messagesPerSecond: 1
+experimentLength: 3 # in seconds
+metrics:
+  - name: Throughput
+    filename: throughput
+    query: flink_taskmanager_job_task_operator_componentThroughput
+  - name: Heap Usage ((*\si{\mebi\byte}*))
+    filename: heap
+    query: flink_taskmanager_Status_JVM_Memory_Heap_Used
+  - name: CPU Load
+    filename: cpu
+    query: flink_taskmanager_Status_JVM_CPU_Load
+\end{lstlisting}
+  \label{fig:global}
+  \caption{Example global configuration file}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{lstlisting}[escapeinside={(*}{*)}]
+- cpuTime: 5000 # in (*\si{\milli\second}*)
+  memoryUsage: 100 # in (*\si{\mebi\byte}*)
+  outputSize: 1 # in (*\si{\kibi\byte}*)
+- cpuTime: 5000
+  memoryUsage: 200
+  outputSize: 1
+\end{lstlisting}
+  \label{fig:components}
+  \caption{Example configuration file that defines a list of components with
+    their resource requirements}
+\end{figure}
+
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -137,7 +187,7 @@ and \texttt{components.yaml}. The former has the following...
           \end{umlcall}
         \end{umlfragment}
       \end{umlcall}
-      \begin{umlcall}[op={net runtime}, type=return]{Benchmarker}{ControlServer}
+      \begin{umlcall}[op={runtime}, type=return]{Benchmarker}{ControlServer}
       \end{umlcall}
       \begin{umlfragment}[type=loop, label={$\forall$ metrics}, inner xsep=6]
         \begin{umlcall}[op={query}, return={metric}]{ControlServer}{Prometheus}
@@ -147,52 +197,132 @@ and \texttt{components.yaml}. The former has the following...
       \end{umlfragment}
     \end{umlseqdiag}
   \end{tikzpicture}
+  \label{fig:communication}
   \caption{Communication between different parts of the system visualised as a
     UML sequence diagram}
 \end{figure}
 
-% TODO: describe the workflow
+We illustrate some aspects of the execution and how different components
+communicate with each other in Figure~\ref{fig:communication}. After the Flink
+app (called Benchmarker) is initialised, it immediately establishes the control
+server as a \texttt{socketTextStream}, i.e., the initial source of data. It then
+constructs a chain of mappers according to the \texttt{components.yaml}
+specifications.
 
-% TODO: experiment.py
+The control server periodically sends messages to Benchmarker (as defined in
+\texttt{global.yaml}). Each component (mapper) does three things upon receiving
+each message:
+\begin{enumerate}
+\item First, it allocates an array so that the total memory usage would be as
+  close to \texttt{memoryUsage} as possible. The array size is calculated using
+  a linear regression model established using experimental data (see
+  Section~\ref{sec:adjustments}).
+\item Then, it creates a \texttt{String} object taking up \SI[number-math-rm =
+  \mathnormal, parse-numbers = false]{\texttt{outputSize}}{\kibi\byte} of
+  memory. This string will be passed to the next component in the chain.
+\item Finally, it spends the remaining time (until total execution time is
+  exactly \texttt{cpuTime}) testing the Collatz conjecture \cite{collatz} one
+  initial integer at a time.
+\end{enumerate}
 
-\section{Local Performance Tuning}
+After all messages from the control server pass through every mapper,
+Benchmarker connects to the control server, sending it total running time (as
+measured by \texttt{JobExecutionResult.getNetRuntime()}). This number is then
+rounded up to an integer number of minutes and used to retrieve performance data
+for the time interval when the application was running.
 
-\subsection{Experiments}
+Finally, for each metric defined in the global configuration file, the control
+server establishes an HTTPS connection to Prometheus, collects JSON data
+recording the values of that metric in the last few minutes (as calculated
+previously), and writes the data to a file (separate for each metric) on the
+persistent volume.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/comparison1.png}
-  \caption{}
-  \label{}
-\end{figure}
+The last component of the system consists of two Python scripts. The first is
+responsible for deploying the entire OpenShift setup, waiting for the control
+server to terminate, and using MiniShift SSH to copy files from the persistent
+volume to a host folder, which places them into a local directory on the host
+machine. The second script can then read the data and plot it using Matplotlib,
+comparing observed data with their expected values, as dictated by the
+parameters of the experiment.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/comparison2.png}
-  \caption{}
-  \label{}
-\end{figure}
+\section{Local Performance Tuning} \label{sec:adjustments}
 
-\subsection{Adjusted Performance}
+The component script, responsible for using predefined amounts of resources, was
+tested and adjusted locally, ensuring that it uses 100\% of a single CPU and
+\SI[number-math-rm = \mathnormal, parse-numbers =
+false]{\texttt{memoryUsage}}{\mebi\byte} of memory. Total heap memory usage was
+measured for array sizes $2^0, 2^1, 2^2, \dots, 2^9$ and output strings of $2^0,
+2^1, 2^2, \dots, \min \{ 2^8, \text{array size} \}$ characters (the output
+string is constructed using the array, so the array size must always be at least
+as big as the output string). Maximum heap usage was measured using GNU
+Time\footnote{\url{https://www.gnu.org/software/time/}} and its Maximum Resident
+Set Size metric. Each experiment was repeated three times, and median values
+were taken.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/prediction1.png}
-  \caption{}
-  \label{}
-\end{figure}
+We seek to know the average amount of memory used by a single character of a
+Java string. Knowing that a byte on an array takes up exactly one byte allows us
+to reformulate the problem to a simple linear regression shown in
+Figure~\ref{fig:regression1}. The model shows that overall memory usage can be
+expressed as
+\begin{equation} \label{eq:regression}
+  \text{memory usage} = \SI{40}{\mebi\byte} + \text{array size} + 3.268 \times
+  \text{string size} + \epsilon,
+\end{equation}
+contradicting the common wisdom that a character uses approximately two bytes of
+memory \cite{java_memory}.
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{../proof_of_concept/prediction2.png}
-  \caption{}
-  \label{}
+  \caption{A log-log plot comparing the number of characters in a string and the
+  observed memory unaccounted by the array. In each column, separate points
+  correspond to different array sizes. The curve is a best-fit linear regression
+  line.}
+  \label{fig:regression1}
 \end{figure}
 
-\section{Experimental Results}
+Figure~\ref{fig:regression2} presents a more detailed view, however suggesting
+the same conclusion. While the predictions seem to consistently overestimate
+memory consumption for short strings and similarly underestimate it for longer
+strings, adding a quadratic term is not enough to remove the bias in errors, and
+the errors are sufficiently small (see Section~\ref{sec:after_adjustments} for
+more details).
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../proof_of_concept/prediction1.png}
+  \caption{A log-log plot showing memory consumption across a range of array
+    sizes, with different string sizes represented by different colours. For
+    each string size, we also draw a regression line in the corresponding
+    colour.}
+  \label{fig:regression2}
+\end{figure}
+
+\subsection{Adjusted Performance} \label{sec:after_adjustments}
+
+We can use the two numerical parameters in Equation~\eqref{eq:regression} to
+adjust our `mapping function' in order to ensure that it uses the correct amount
+of memory. We run a similar set of experiments as before, except replacing array
+size with expected memory usage as one of our independent variables (the other
+being string size). Memory usage is set to four different values: 64, 128,
+256, and \SI{512}{\mebi\byte} (note that the smallest possible memory usage is
+about \SI{40}{\mebi\byte}), while string size is exponentially increased from
+\SI{1}{\mebi\byte} up to the largest power of two small enough so that the
+string can be constructed from the array. We plot the errors in
+Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
+\SI{50}{\kibi\byte}, which is good enough for our needs.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../proof_of_concept/adjusted.png}
+  \caption{A heat map of errors (in \si{\kibi\byte})}
+  \label{fig:adjustment}
+\end{figure}
+
+\section{Experimental Evaluation}
 % TODO: a study that (visually) compares expected performance with Prometheus
 % graphs for a range of (one-component) configurations
 
-\section{Conclusion}
-
+\bibliographystyle{abbrv}
+\bibliography{report}
 \end{document}

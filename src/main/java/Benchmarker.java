@@ -33,11 +33,15 @@ public class Benchmarker {
         JobExecutionResult result = env.execute();
 
         // Send the server the job's running time
-        try (
-                Socket socket = new Socket(config.controlHostname, config.controlPort);
-                PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
-        ) {
-            pw.write(result.getNetRuntime() + "\n");
+        boolean tryAgain = true;
+        while (tryAgain) {
+            try (
+                    Socket socket = new Socket(config.controlHostname, config.controlPort);
+                    PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
+            ) {
+                pw.write(result.getNetRuntime() + "\n");
+                tryAgain = false;
+            }
         }
     }
 }

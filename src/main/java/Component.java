@@ -32,7 +32,8 @@ public class Component extends RichMapFunction<String, String> {
 
         // Memory calculations
         int stringLength = (int) ((outputSize << 10) / BYTES_PER_CHAR);
-        int arraySize = (memoryUsage << 20) - BASE_MEMORY_CONSUMPTION - outputSize;
+        int arraySize = (memoryUsage << 20) - BASE_MEMORY_CONSUMPTION - (outputSize << 10);
+
         assert stringLength <= arraySize;
         assert arraySize >= 0;
 

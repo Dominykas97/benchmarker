@@ -19,8 +19,9 @@ public class FullComponent {
 
         // Memory calculations
         int stringLength = (int) ((outputSize << 10) / BYTES_PER_CHAR);
-        int arraySize = (memoryUsage << 20) - BASE_MEMORY_CONSUMPTION - outputSize;
+        int arraySize = (memoryUsage << 20) - BASE_MEMORY_CONSUMPTION - (outputSize << 10);
         assert stringLength <= arraySize;
+        assert arraySize >= 0;
 
         // Fill the required amount of memory with random data
         byte[] memory = new byte[arraySize];

@@ -1,72 +1,42 @@
-import time
-import json
-import matplotlib.pyplot as plt
 import subprocess
 import yaml
 
 HOSTFOLDER_NAME = 'hostfolder'
 PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
-LOCAL_DIR_WITH_DATA = '../benchmarker_data'
-LOCAL_DIR_WITH_PLOTS = 'plots'
+COMPONENTS_FILE = 'config/components.yaml'
+BASE_MEMORY_CONSUMPTION = 40 << 20
+BYTES_PER_CHAR = 3.26845703125
 
 # Read in a list of metrics
 with open('config/global.yaml', 'r') as config:
     metrics = yaml.safe_load(config)['metrics']
 
-subprocess.run(['make', 'clean'])
-subprocess.run(['make', 'up'])
+def run_experiment(filename_suffix = ''):
+    subprocess.run(['make', 'clean'])
+    subprocess.run(['make', 'up'])
 
-# Wait until the control server finishes
-# NOTE: if the pod fails, this will run forever
-while True:
-    status = subprocess.run(['oc', 'get', 'po', 'control'], stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
-    if status == 'Completed':
-        break
+    # Wait until the control server finishes
+    # NOTE: if the pod fails, this will run forever
+    while True:
+        status = subprocess.run(['oc', 'get', 'po', 'control'],
+                                stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
+        if status == 'Completed':
+            break
 
-# Move files from the persistent volume to the host folder using MiniShift SSH
-for metric in metrics:
-    command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
-        HOSTFOLDER_NAME, metric['filename'], PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME,
-        metric['filename'])
-    print(command)
-    subprocess.Popen(command, shell=True)
-time.sleep(2) # Wait a bit, making sure that the files have time to move from the VM to the local machine
+    # Move files from the persistent volume to the host folder using MiniShift SSH
+    for metric in metrics:
+        new_name = metric['filename'] + filename_suffix
+        command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
+            HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME, new_name)
+        subprocess.Popen(command, shell=True)
 
-# Read in the performance data
-data = {}
-first_timestamp = float('inf')
-for metric in metrics:
-    with open('{}/{}.json'.format(LOCAL_DIR_WITH_DATA, metric['filename'])) as f:
-        data[metric['filename']] = json.loads(f.read())
-    first_timestamp = min(first_timestamp, min(series['values'][0][0]
-                                               for series in data[metric['filename']]['data']['result']))
-
-def transform_value(metric_name, value):
-    'Transform heap usage from bytes into MB'
-    return int(value) >> 20 if metric_name == 'heap' else float(value)
-
-def add_expected_line_to_plot(metric_name, x):
-    'Only makes sense for single-component setups'
-    if metric_name == 'cpu':
-        plt.plot([x[0], x[-1]], [1, 1], label='expected')
-    elif metric_name == 'heap':
-        with open('config/components.yaml', 'r') as components:
-            expected_memory_usage = yaml.safe_load(components)[0]['memoryUsage']
-        plt.plot([x[0], x[-1]], [expected_memory_usage, expected_memory_usage], label='expected')
-
-for i, metric in enumerate(metrics):
-    plt.figure(i + 1)
-    for i, series in enumerate(data[metric['filename']]['data']['result']):
-        x = []
-        y = []
-        for timestamp, value in series['values']:
-            x.append(timestamp - first_timestamp)
-            y.append(transform_value(metric['filename'], value))
-        plt.plot(x, y, label='observed')
-    add_expected_line_to_plot(metric['filename'], x)
-    plt.title(metric['name'])
-    plt.xlabel('time')
-    plt.legend()
-    plt.savefig('{}/{}.png'.format(LOCAL_DIR_WITH_PLOTS, metric['filename']))
-
-# TODO: Compare them with estimated numbers (if available)
+for memory in map(lambda x: 2**x, range(10)):
+    print('==========MEMORY =', memory, '==========')
+    output = 1
+    while output <= int(((memory << 20) - BASE_MEMORY_CONSUMPTION) * BYTES_PER_CHAR / (BYTES_PER_CHAR + 1)) >> 20:
+        for repetition in range(3):
+            config = [{'cpuTime': 0, 'memoryUsage': memory, 'outputSize': output << 10}]
+            with open(COMPONENTS_FILE, 'w') as f:
+                yaml.dump(config, f)
+            run_experiment('_{}_{}_{}'.format(memory, output, repetition))
+        output *= 2

@@ -7,9 +7,9 @@ import java.util.List;
 public class Config {
     public String controlHostname;
     public int controlPort;
-    public int numMessages;
-    public int interMessageTime;
     public String prometheusHostname;
+    public float messagesPerSecond;
+    public int experimentLength;
     public List<Metric> metrics;
 
     static Config getInstance() throws Exception {

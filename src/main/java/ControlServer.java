@@ -43,6 +43,7 @@ public class ControlServer {
 
     public static void main(String[] args) throws Exception {
         Config config = Config.getInstance();
+        int numMessages = (int) Math.ceil(config.messagesPerSecond * config.experimentLength);
 
         // Send messages to the Flink app
         try (
@@ -50,11 +51,11 @@ public class ControlServer {
                 Socket socket = server.accept();
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         ) {
-            for (int i = 0; i < config.numMessages; i++) {
-                System.out.println("Sending " + (i + 1) + "/" + config.numMessages + " message");
+            for (int i = 0; i < numMessages; i++) {
+                System.out.println("Sending " + (i + 1) + "/" + numMessages + " message");
                 out.println(".");
-                if (i < config.numMessages - 1)
-                    TimeUnit.MILLISECONDS.sleep(config.interMessageTime);
+                if (i < numMessages - 1)
+                    TimeUnit.NANOSECONDS.sleep((long) (1e+9 / config.messagesPerSecond));
             }
         }
 
