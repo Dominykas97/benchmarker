@@ -34,9 +34,9 @@ for memory in map(lambda x: 2**x, range(10)):
     print('==========MEMORY =', memory, '==========')
     output = 1
     while output <= int(((memory << 20) - BASE_MEMORY_CONSUMPTION) * BYTES_PER_CHAR / (BYTES_PER_CHAR + 1)) >> 20:
+        config = [{'cpuTime': 0, 'memoryUsage': memory, 'outputSize': output << 10}]
+        with open(COMPONENTS_FILE, 'w') as f:
+            yaml.dump(config, f)
         for repetition in range(3):
-            config = [{'cpuTime': 0, 'memoryUsage': memory, 'outputSize': output << 10}]
-            with open(COMPONENTS_FILE, 'w') as f:
-                yaml.dump(config, f)
             run_experiment('_{}_{}_{}'.format(memory, output, repetition))
         output *= 2

@@ -1,5 +1,4 @@
 \documentclass{article}
-\usepackage{caption}
 \usepackage{mathtools}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
@@ -101,8 +100,8 @@ metrics:
     filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load
 \end{lstlisting}
-  \label{fig:global}
   \caption{Example global configuration file}
+  \label{fig:global}
 \end{figure}
 
 \begin{figure}
@@ -115,9 +114,9 @@ metrics:
   memoryUsage: 200
   outputSize: 1
 \end{lstlisting}
-  \label{fig:components}
   \caption{Example configuration file that defines a list of components with
     their resource requirements}
+  \label{fig:components}
 \end{figure}
 
 \begin{figure}
@@ -167,12 +166,12 @@ metrics:
     \umlVHVassemblyconnector[interface={6123{,} 6124{,} 8081{,} 9250}, with port]{JobManager Pod}{JobManager Service}
     \umlVHVassemblyconnector[interface={6121{,} 6122{,} 9250}, with port]{TaskManager Pod}{TaskManager Service}
   \end{tikzpicture}
-  \label{fig:uml}
   \caption{UML component diagram of the system, as deployed on MiniShift. Yellow
   components are OpenShift manifestos, while red components represent files
   (either Java classes or YAML configuration files). Network connections are
   shown with ports and have port numbers (or application-layer protocol names)
   displayed.}
+  \label{fig:uml}
 \end{figure}
 
 \begin{figure}
@@ -199,9 +198,9 @@ metrics:
       \end{umlfragment}
     \end{umlseqdiag}
   \end{tikzpicture}
-  \label{fig:communication}
   \caption{Communication between different parts of the system visualised as a
     UML sequence diagram}
+  \label{fig:communication}
 \end{figure}
 
 We illustrate some aspects of the execution and how different components
@@ -322,9 +321,6 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 \end{figure}
 
 \section{Experimental Evaluation}
-% TODO: a study that (visually) compares expected performance with Prometheus
-% graphs for a range of (one-component) configurations
-
 % TODO: explain the setup (according to experiment.py)
 % measured at 1 s intervals
 
@@ -334,19 +330,58 @@ four values of \texttt{memoryUsage} (\SI{64}{\mebi\byte}, \SI{128}{\mebi\byte},
 \SI{256}{\mebi\byte}, \SI{512}{\mebi\byte}), while keeping \texttt{cpuTime} at 0
 so that each run lasts only as long as it takes to allocate and randomise the
 memory. For \texttt{outputSize}, we explore every power-of-two number of
-\si{\mebi\byte} compatible with the current \texttt{memoryUsage} value.
+\si{\mebi\byte} compatible with the current \texttt{memoryUsage} value. We stick
+to a single component and record CPU and memory consumption at \SI{1}{\sec}
+intervals using Prometheus. Each \texttt{memoryUsage} and \texttt{outputSize}
+configuration is written into \texttt{components.yaml} and run three times. With
+each run, we recreate all OpenShift components (pods, services, etc.), wait for
+the control server to terminate, and retrieve the generated JSON files.
 
-% TODO: and repetitions
+Figure~\ref{fig:cpu_experiment} shows CPU usage across all runs. Even
+though our standalone Java application easily reaches 100\% CPU usage, when
+transferred to an OpenShift environment, a typical run could only get around
+10\%--15\% (as indicated by the red curve), occasionally reaching up to 70\% or
+80\% CPU usage. This can be explained by the fact that MiniShift internal
+processes as well as Flink JobManager and TaskManager are all running on the
+same machine. Even though the processes are distributed among eight cores, this
+overhead is sufficient to significantly decelerate the application.
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{../plots/cpu_experiment.png}
   \caption{CPU usage across time. Each gray line represents a different run. The
   red curve is their (pointwise) median, the blue curve is the mean, while the
-  shaded area marks 1 standard deviation around the mean. Note that time is on a
+  shaded area marks one standard deviation around the mean. Note that time is on a
   $\log$ scale.}
   \label{fig:cpu_experiment}
 \end{figure}
+
+Figure~\ref{fig:heap_experiment} shows similar memory usage measurements divided
+into four plots, one for each value of \texttt{memoryUsage}. We can see that
+there is significant variation among runs (and different \texttt{outputSize}
+values). In fact, in order to determine whether memory usage is optimal or
+hampered, one would need to run many identical experiments to account for
+variability. Moreover, each curve is unlikely to be fully summarised by a single
+number: maximum values are almost always higher than the expected result, while
+means are likely to be distorted by the initial several seconds of low memory
+usage as well as observed dips in memory usage later in the execution.
+
+Note that individual runs can be summarised as follows:
+\begin{enumerate}
+\item Memory usage starts low.
+\item It rises two times.
+\item Sometimes memory usage experiences a significant drop, and sometimes this
+  step is skipped.
+\item Memory usage stays constant for a while.
+\item The process terminates.
+\end{enumerate}
+
+We can easily explain this pattern. The first increase is caused by the array
+allocation, while the second one is the result of constructing the output
+string. The drop in memory usage happens when the array is deallocated
+(garbage-collected) some time after the execution of my code completes.
+Sometimes that happens early enough to be captured by Prometheus, and sometimes
+the Flink job is marked as complete before garbage collection activates.
 
 \begin{figure}
   \centering
@@ -378,14 +413,37 @@ memory. For \texttt{outputSize}, we explore every power-of-two number of
     memory amounts. The green dashed horizontal line marks the expected amount
     of memory usage. Each gray line represents a different run. The red curve is
     their (pointwise) median, the blue curve is the mean, while the shaded area
-    marks 1 standard deviation around the mean.}
+    marks one standard deviation around the mean.}
   \label{fig:heap_experiment}
 \end{figure}
+
+Finally, we consider the extent to which memory usage can be summarised by
+taking the maximum across time. We report each difference between expected $E$
+and observed $O$ values as a relative error, i.e.,
+\[
+  \frac{O - E}{E}.
+\]
+We consider these errors for all viable combinations of \texttt{memoryUsage} and
+\texttt{outputSize} and report the median of the three identical runs performed
+on each combination. The results are in Figure~\ref{fig:relative_errors}.
+Unsurprisingly, maximum memory usage across time is usually higher than the
+estimate. Also note that the overall shape of the heat map is similar to
+Figure~\ref{fig:adjustment}, where we measure differences between observed and
+expected memory usage with the standalone Java application. In both cases,
+observed values are smaller with lower values of \texttt{outputSize}, and a
+combination of high overall memory usage and a long output string in the top
+right corner of both heat maps is likely to result in observed memory usage
+being significantly higher than the expected value. Even though we take median
+values to reduce the effect of outliers, observed memory usage can be up to 80\%
+higher than the expected value, adding evidence to the imprecision and
+unreliability of making judgments based on a single number or a single
+experiment.
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{../plots/relative_median_errors.png}
-  \caption{Relative median heap usage errors}
+  \caption{Relative median memory usage errors, as predicted by the maximum
+    memory usage across execution}
   \label{fig:relative_errors}
 \end{figure}
 
