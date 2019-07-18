@@ -1,6 +1,10 @@
 library("ggplot2")
 library("reshape2")
 library("rjson")
+library("RColorBrewer")
+
+colour <- list()
+colour[c("red", "blue", "green")] <- brewer.pal(n = 3, name = "Set1")
 
 # Find all relevant files
 cpu_files = list.files("data/", "cpu*", full.names = TRUE)
@@ -27,8 +31,8 @@ std_df <- data.frame(timestamp = integer(), mean = double(), std = double())
 for (i in 0:max_timestamp) {
   values_at_time_i <- df$value[df$timestamp == i]
 
-  median_row <- data.frame(variable = "median", timestamp = i, value = median(values_at_time_i), colour = "red", size = 1)
-  mean_row <- data.frame(variable = "mean", timestamp = i, value = mean(values_at_time_i), colour = "blue", size = 1)
+  median_row <- data.frame(variable = "median", timestamp = i, value = median(values_at_time_i), colour = colour$red, size = 1)
+  mean_row <- data.frame(variable = "mean", timestamp = i, value = mean(values_at_time_i), colour = colour$blue, size = 1)
   std_row <- data.frame(timestamp = i, mean = mean(values_at_time_i), std = sd(values_at_time_i))
 
   mean_df <- rbind(mean_df, median_row)
@@ -37,8 +41,9 @@ for (i in 0:max_timestamp) {
 }
 df <- rbind(df, mean_df, median_df)
 
-ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time") + ylab("CPU Usage") +
+ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time (s)") + ylab("CPU Usage") +
   geom_line(aes(group = variable), colour = df$colour, size = df$size) +
   geom_ribbon(data = std_df, aes(x = timestamp, y = mean, ymin = mean - std, ymax = mean + std),
-              fill = "blue", alpha = 0.1)
-
+              fill = colour$blue, alpha = 0.1) +
+  scale_x_continuous(trans = 'log2')
+ggsave(sprintf("plots/cpu_experiment.png"))

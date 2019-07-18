@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{caption}
 \usepackage{mathtools}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
@@ -6,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{subcaption}
 \usepackage{tikz-uml}
 \usepackage[binary-units = true]{siunitx}
 
@@ -322,6 +324,70 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 \section{Experimental Evaluation}
 % TODO: a study that (visually) compares expected performance with Prometheus
 % graphs for a range of (one-component) configurations
+
+% TODO: explain the setup (according to experiment.py)
+% measured at 1 s intervals
+
+Experiments were performed in order to determine how well performance metrics
+observed with a standalone Java application transfer to MiniShift. We explore
+four values of \texttt{memoryUsage} (\SI{64}{\mebi\byte}, \SI{128}{\mebi\byte},
+\SI{256}{\mebi\byte}, \SI{512}{\mebi\byte}), while keeping \texttt{cpuTime} at 0
+so that each run lasts only as long as it takes to allocate and randomise the
+memory. For \texttt{outputSize}, we explore every power-of-two number of
+\si{\mebi\byte} compatible with the current \texttt{memoryUsage} value.
+
+% TODO: and repetitions
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../plots/cpu_experiment.png}
+  \caption{CPU usage across time. Each gray line represents a different run. The
+  red curve is their (pointwise) median, the blue curve is the mean, while the
+  shaded area marks 1 standard deviation around the mean. Note that time is on a
+  $\log$ scale.}
+  \label{fig:cpu_experiment}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/heap_64.png}
+    \caption{expected heap usage: \SI{64}{\mebi\byte}}
+    \label{fig:heap_64}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/heap_128.png}
+    \caption{expected heap usage: \SI{128}{\mebi\byte}}
+    \label{fig:heap_128}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/heap_256.png}
+    \caption{expected heap usage: \SI{256}{\mebi\byte}}
+    \label{fig:heap_256}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/heap_512.png}
+    \caption{expected heap usage: \SI{512}{\mebi\byte}}
+    \label{fig:heap_512}
+  \end{subfigure}
+  \caption{Observed versus expected memory usage across time for four expected
+    memory amounts. The green dashed horizontal line marks the expected amount
+    of memory usage. Each gray line represents a different run. The red curve is
+    their (pointwise) median, the blue curve is the mean, while the shaded area
+    marks 1 standard deviation around the mean.}
+  \label{fig:heap_experiment}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../plots/relative_median_errors.png}
+  \caption{Relative median heap usage errors}
+  \label{fig:relative_errors}
+\end{figure}
 
 \bibliographystyle{abbrv}
 \bibliography{report}
