@@ -19,105 +19,123 @@
 %\begin{abstract}
 %\end{abstract}
 
-% TODO:
-% Motivation
-% OpenShift, MiniShift
-% Prometheus
-% Flink
-% Docker
+\section{Introduction}
+
+Before an application is deployed to a cloud, one needs to select the required
+number of resources. But what is the right resource configuration for \emph{my}
+application? One might ask and wonder whether there is a way to obtain a clear
+answer.
+
+We present a benchmarking system that can simulate the workflow of a range of
+distributed applications, measure various performance metrics, and detect
+whether a given resource configuration is sufficient for the application to
+perform well.
+
+The system comes with a number of predefined configuration files that represent
+realistic workloads of common applications. Every aspect of each configuration
+file can be adjusted, and new configuration files can be created to represent,
+e.g., additional components of the application.
+
+Our simulated applications consist of a sequence of maps implemented using
+Apache Flink. They receive messages from a \emph{control server} and perform a
+predefined amount of work, using a predefined amount of memory. The server can
+send any number messages at specified intervals (or in more interesting
+patterns, if I get around to implementing that).
+
+The Flink application is enclosed in a Docker container and deployed on the
+OpenShift cloud platform. Performance metrics are recorded using Prometheus,
+which is assumed to be a separate application deployed on the same OpenShift
+platform.
 
 \section{Architecture and Implementation}
 
-Two simple Dockerfiles were created. The first one is used for TaskManager and
-JobManager pods and extends the original Flink Docker image by enabling
-Prometheus support on port 9250. Prometheus can then query that port in order to
-retrieve and record performance metrics.
+In this section we describe implementation details of the system at its current
+state. During the first stage of the project, the system was deployed and tested
+on MiniShift---a single-node OpenShift implementation. While the intent is to
+progress to an OpenShift cloud, some of the current implementation details are
+specific to MiniShift.
+
+In Section~\ref{sec:deployment} we describe our initial Docker
+container-based configuration and how it was transformed into \emph{manifestos},
+i.e., OpenShift deployment configuration files. We also discuss modifications to
+the standard Prometheus deployment on MiniShift as well as configuration files
+that can be used to simulate various applications, add new performance metrics,
+etc. In Section~\ref{sec:execution} we dive into Java code to explain what
+happens during execution: how the Flink app interacts with the control server
+and simulates work and how performance metrics are tracked and recorded.
+
+\subsection{Deployment} \label{sec:deployment}
+% TODO: services/pods duality
+
+Flink deployment consists of a JobManager that manages the work, one or more
+TaskManagers that execute tasks, and a command that tells JobManager what to do.
+In order to deploy these services on OpenShift, we need to put each `work unit'
+(something that can run on a separate node) in its own Docker container. We
+ended up using two simple Dockerfiles.
+
+The first one is used for both TaskManagers and the JobManager and extends the
+original Flink Docker image by enabling Prometheus support on port 9250.
+Prometheus can then use that port to retrieve and record performance metrics.
 
 The second Dockerfile extends the first one by adding a JAR file with Java code
 for both the control server and the Flink app. This image also contains a custom
-\texttt{ENTRYPOINT} that sends the Flink app to the JobManager (via port 8081)
-as a background process, while executing the control server in the foreground.
-This is the optimal arrangement of the two processes since the control server
-always waits for the Flink app to finish in order to take its running time into
-account when requesting data from Prometheus.
+\texttt{ENTRYPOINT} shell script that sends the Flink app to the JobManager (via
+port 8081) as a background process, while executing the control server in the
+foreground. This is the optimal arrangement of the two processes since the
+control server always waits for the Flink app to finish in order to take its
+running time into account when requesting data from Prometheus.
 
-In both cases, one needs to change the permissions and group ownership of the
-\texttt{/opt/flink} directory (to \texttt{775} and \texttt{root}, respectively)
+In both Dockerfiles, one needs to change the permissions and group ownership of the
+\texttt{/opt/flink} directory (to \texttt{775} and \texttt{root} respectively)
 so that the containers can be successfully executed by any user belonging to the
-group \texttt{root}. Both images were put on Docker Hub, as this was the
-simplest way to make them available to MiniShift.
+group \texttt{root}. Both images were put on Docker Hub in order to make them
+easily accessible by MiniShift.
 
-A Docker Compose file was written with three services: Control,
-JobManager, and TaskManager, establishing open ports as pictured in
-Figure~\ref{fig:uml}). This file was then converted to OpenShift manifestos
-using Kompose\footnote{\url{http://kompose.io/}}. The generated manifestos,
-relevant network connections, and other dependencies are displayed in
-Figure~\ref{fig:uml}. The entire system can then be updated and deployed by
-generating a new JAR file using Maven, building and uploading the two
-Dockerfiles, and recreating all components of the OpenShift configuration, as
-described by the manifestos.
+A Docker Compose file can then be used to combine several Dockerfiles into a
+valid deployment configuration. In this file we define three services:
+\texttt{Control}, \texttt{JobManager}, and \texttt{TaskManager}, establishing
+open ports as pictured in Figure~\ref{fig:uml}. This file was then converted to
+OpenShift manifestos using Kompose\footnote{\url{http://kompose.io/}}. The
+generated manifestos, relevant network connections, and other dependencies are
+displayed in Figure~\ref{fig:uml}. A notable difference between the two
+configurations is that while a Docker Compose file defines only services,
+OpenShift has both services and pods. \emph{Service} manifestos define the
+network interface (i.e., what ports are open), while manifestos for \emph{pods}
+contain the details of what Docker containers should be run, restart policy,
+additional data that should be mounted to the pod, etc. The entire system can
+then be updated and deployed by generating a new JAR file using Maven, building
+and uploading the two Dockerfiles, and recreating all components of the
+OpenShift configuration, as described by the manifestos.
 
-Prometheus add-on for
+% deployment of configuration files
+Configuration Files component in Figure~\ref{fig:uml} represents a
+\texttt{ConfigMap} OpenShift entity created using the \texttt{oc} command that
+contains two configuration files, \texttt{global.yaml} and
+\texttt{components.yaml} (see Figures \ref{fig:global} and \ref{fig:components}
+for examples). The former contains basic networking information along with two
+parameters that control the experiment (\texttt{experimentLength} and
+\texttt{messagesPerSecond}) as well as a list of metrics. The two aforementioned
+experiment-specific parameters together define the frequency and number of
+messages that the control server will send to the Flink app. Each metric is
+described with three properties: \texttt{name}, \texttt{filename}, and
+\texttt{query}. The last one corresponds to the name of the property as defined
+by Prometheus, while the other two are used for data storage and plotting. The
+\texttt{components.yaml} configuration file, on the other hand, describes a
+sequence of processing stages (maps), each with its own CPU usage time, memory
+usage, and output data size (i.e., the amount of data passed to the next stage).
+
+% local Prometheus setup
+Lastly, it is worth mentioning that the Prometheus add-on for
 MiniShift\footnote{\url{https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus}}
-was modified to disable OAuth-based authentication by replacing
-\texttt{-skip-auth-regex=\^{}/metrics} with \texttt{-skip-auth-regex=\^{}/}.
-Furthermore, its configuration file was updated to set both scrape and
-evaluation intervals to 1 second and the list of targets to JobManager and
-TaskManager, both on port 9250.
-
-Configuration Files component represents a ConfigMap created using the
-\texttt{oc} command that contains two configuration files, \texttt{global.yaml}
-and \texttt{components.yaml} (see Figures \ref{fig:global} and
-\ref{fig:components} for examples). The former contains basic networking
-information along with two parameters that control the experiment
-(\texttt{experimentLength} and \texttt{messagesPerSecond}) and a list of
-metrics. The two experiment-specific parameters together define the frequency
-and number of messages that the \texttt{ControlServer} will send to the
-\texttt{Benchmarker}. Each metric is described with three properties:
-\texttt{name}, \texttt{filename}, and \texttt{query}. The last one corresponds
-to the name of the property as defined by Prometheus, while the other two are
-used for data storage and plotting. The \texttt{components.yaml} configuration
-file, on the other hand describes a sequence of processing stages, each with its
-own CPU usage time, memory usage, and output data size (i.e., the amount of data
-passed to the next stage).
-
-\begin{figure}
-  \centering
-\begin{lstlisting}[escapeinside={(*}{*)}]
-controlHostname: control
-controlPort: 9998
-prometheusHostname: prometheus
-messagesPerSecond: 1
-experimentLength: 3 # in seconds
-metrics:
-  - name: Throughput
-    filename: throughput
-    query: flink_taskmanager_job_task_operator_componentThroughput
-  - name: Heap Usage ((*\si{\mebi\byte}*))
-    filename: heap
-    query: flink_taskmanager_Status_JVM_Memory_Heap_Used
-  - name: CPU Load
-    filename: cpu
-    query: flink_taskmanager_Status_JVM_CPU_Load
-\end{lstlisting}
-  \caption{Example global configuration file}
-  \label{fig:global}
-\end{figure}
-
-\begin{figure}
-  \centering
-\begin{lstlisting}[escapeinside={(*}{*)}]
-- cpuTime: 5000 # in (*\si{\milli\second}*)
-  memoryUsage: 100 # in (*\si{\mebi\byte}*)
-  outputSize: 1 # in (*\si{\kibi\byte}*)
-- cpuTime: 5000
-  memoryUsage: 200
-  outputSize: 1
-\end{lstlisting}
-  \caption{Example configuration file that defines a list of components with
-    their resource requirements}
-  \label{fig:components}
-\end{figure}
+had to be modified in order to disable OAuth-based authentication by replacing
+\[
+  \texttt{-skip-auth-regex=\^{}/metrics} \quad \text{with} \quad
+  \texttt{-skip-auth-regex=\^{}/}.
+\]
+This may or may not be a problem when moving from MiniShift to an actual cloud.
+Furthermore, Prometheus configuration file was updated to set both scrape and
+evaluation intervals to \SI{1}{\second} and the list of targets to JobManager
+and TaskManager, both on port 9250.
 
 \begin{figure}
   \centering
@@ -176,6 +194,84 @@ metrics:
 
 \begin{figure}
   \centering
+\begin{lstlisting}[escapeinside={(*}{*)}]
+controlHostname: control
+controlPort: 9998
+prometheusHostname: prometheus
+messagesPerSecond: 1
+experimentLength: 3 # in seconds
+metrics:
+  - name: Throughput
+    filename: throughput
+    query: flink_taskmanager_job_task_operator_componentThroughput
+  - name: Heap Usage ((*\si{\mebi\byte}*))
+    filename: heap
+    query: flink_taskmanager_Status_JVM_Memory_Heap_Used
+  - name: CPU Load
+    filename: cpu
+    query: flink_taskmanager_Status_JVM_CPU_Load
+\end{lstlisting}
+  \caption{Example \texttt{global.yaml}}
+  \label{fig:global}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{lstlisting}[escapeinside={(*}{*)}]
+- cpuTime: 5000 # in (*\si{\milli\second}*)
+  memoryUsage: 100 # in (*\si{\mebi\byte}*)
+  outputSize: 1 # in (*\si{\kibi\byte}*)
+- cpuTime: 5000
+  memoryUsage: 200
+  outputSize: 1
+\end{lstlisting}
+  \caption{Example \texttt{components.yaml}, defining a list of components and
+    their resource requirements}
+  \label{fig:components}
+\end{figure}
+
+\subsection{What Happens During Execution} \label{sec:execution}
+
+We illustrate some aspects of the execution and how different components
+communicate with each other in Figure~\ref{fig:communication}. After the Flink
+app (called Benchmarker) is initialised, it immediately establishes the control
+server as a \texttt{socketTextStream}, i.e., the initial source of data. It then
+constructs a chain of mappers as described in \texttt{components.yaml}.
+
+The control server periodically sends messages to Benchmarker (as defined in
+\texttt{global.yaml}). Each component (mapper) does three things upon receiving
+each message:
+\begin{enumerate}
+\item First, it allocates an array of bytes so that the total memory usage would
+  be as close to \texttt{memoryUsage} as possible. The array size is calculated
+  using a linear regression model established using experimental data (see
+  Section~\ref{sec:adjustments}).
+\item Then, it creates a \texttt{String} object taking up \SI[number-math-rm =
+  \mathnormal, parse-numbers = false]{\texttt{outputSize}}{\kibi\byte} of
+  memory. This string will be passed to the next component in the chain.
+\item Finally, it spends the remaining time (until total execution time is
+  exactly \texttt{cpuTime}) testing the Collatz conjecture \cite{collatz} one
+  initial integer at a time.
+\end{enumerate}
+
+After all messages from the control server pass through every component,
+Benchmarker connects to the control server, sending it the total running time
+(as measured by \texttt{JobExecutionResult.getNetRuntime()}). This number is
+then rounded up to an integer number of minutes and used to retrieve performance
+data for the time interval when the application was running.
+
+Finally, for each metric defined in the global configuration file, the control
+server establishes an HTTPS connection to Prometheus, collects JSON data
+recording the values of that metric in the last few minutes (as calculated
+previously), and writes the data to a file (separate for each metric) on the
+persistent volume. The files can then be transported to a local directory by
+using MiniShift SSH to copy them over to MiniShift host folder, which places
+them into a local directory on the host machine. A Python script was written to
+automate deploying the system, waiting for the control server to terminate, and
+moving the files as described.
+
+\begin{figure}
+  \centering
   \begin{tikzpicture}
     \begin{umlseqdiag}
       \umlobject[no ddots]{Benchmarker}
@@ -203,55 +299,12 @@ metrics:
   \label{fig:communication}
 \end{figure}
 
-We illustrate some aspects of the execution and how different components
-communicate with each other in Figure~\ref{fig:communication}. After the Flink
-app (called Benchmarker) is initialised, it immediately establishes the control
-server as a \texttt{socketTextStream}, i.e., the initial source of data. It then
-constructs a chain of mappers according to the \texttt{components.yaml}
-specifications.
-
-The control server periodically sends messages to Benchmarker (as defined in
-\texttt{global.yaml}). Each component (mapper) does three things upon receiving
-each message:
-\begin{enumerate}
-\item First, it allocates an array so that the total memory usage would be as
-  close to \texttt{memoryUsage} as possible. The array size is calculated using
-  a linear regression model established using experimental data (see
-  Section~\ref{sec:adjustments}).
-\item Then, it creates a \texttt{String} object taking up \SI[number-math-rm =
-  \mathnormal, parse-numbers = false]{\texttt{outputSize}}{\kibi\byte} of
-  memory. This string will be passed to the next component in the chain.
-\item Finally, it spends the remaining time (until total execution time is
-  exactly \texttt{cpuTime}) testing the Collatz conjecture \cite{collatz} one
-  initial integer at a time.
-\end{enumerate}
-
-After all messages from the control server pass through every mapper,
-Benchmarker connects to the control server, sending it total running time (as
-measured by \texttt{JobExecutionResult.getNetRuntime()}). This number is then
-rounded up to an integer number of minutes and used to retrieve performance data
-for the time interval when the application was running.
-
-Finally, for each metric defined in the global configuration file, the control
-server establishes an HTTPS connection to Prometheus, collects JSON data
-recording the values of that metric in the last few minutes (as calculated
-previously), and writes the data to a file (separate for each metric) on the
-persistent volume.
-
-The last component of the system consists of two Python scripts. The first is
-responsible for deploying the entire OpenShift setup, waiting for the control
-server to terminate, and using MiniShift SSH to copy files from the persistent
-volume to a host folder, which places them into a local directory on the host
-machine. The second script can then read the data and plot it using Matplotlib,
-comparing observed data with their expected values, as dictated by the
-parameters of the experiment.
-
 \section{Local Performance Tuning} \label{sec:adjustments}
 
-The component script, responsible for using predefined amounts of resources, was
+The component class, responsible for using predefined amounts of resources, was
 tested and adjusted locally, ensuring that it uses 100\% of a single CPU and
 \SI[number-math-rm = \mathnormal, parse-numbers =
-false]{\texttt{memoryUsage}}{\mebi\byte} of memory. Total heap memory usage was
+false]{\texttt{memoryUsage}}{\mebi\byte} of memory. Total heap usage was
 measured for array sizes $2^0, 2^1, 2^2, \dots, 2^9$ and output strings of $2^0,
 2^1, 2^2, \dots, \min \{ 2^8, \text{array size} \}$ characters (the output
 string is constructed using the array, so the array size must always be at least
@@ -282,7 +335,7 @@ memory \cite{java_memory}.
   \label{fig:regression1}
 \end{figure}
 
-Figure~\ref{fig:regression2} presents a more detailed view, however suggesting
+Figure~\ref{fig:regression2} presents a more detailed view, but suggests
 the same conclusion. While the predictions seem to consistently overestimate
 memory consumption for short strings and similarly underestimate it for longer
 strings, adding a quadratic term is not enough to remove the bias in errors, and
@@ -302,7 +355,7 @@ more details).
 \subsection{Adjusted Performance} \label{sec:after_adjustments}
 
 We can use the two numerical parameters in Equation~\eqref{eq:regression} to
-adjust our `mapping function' in order to ensure that it uses the correct amount
+adjust our map class in order to ensure that it uses the correct amount
 of memory. We run a similar set of experiments as before, except replacing array
 size with expected memory usage as one of our independent variables (the other
 being string size). Memory usage is set to four different values: 64, 128,
@@ -327,11 +380,11 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 Experiments were performed in order to determine how well performance metrics
 observed with a standalone Java application transfer to MiniShift. We explore
 four values of \texttt{memoryUsage} (\SI{64}{\mebi\byte}, \SI{128}{\mebi\byte},
-\SI{256}{\mebi\byte}, \SI{512}{\mebi\byte}), while keeping \texttt{cpuTime} at 0
-so that each run lasts only as long as it takes to allocate and randomise the
-memory. For \texttt{outputSize}, we explore every power-of-two number of
+\SI{256}{\mebi\byte}, \SI{512}{\mebi\byte}), while keeping \texttt{cpuTime} at
+zero so that each run lasts only as long as it takes to allocate and randomise
+the memory. For \texttt{outputSize}, we explore every power-of-two number of
 \si{\mebi\byte} compatible with the current \texttt{memoryUsage} value. We stick
-to a single component and record CPU and memory consumption at \SI{1}{\sec}
+to a single component and record CPU and memory consumption at \SI{1}{\second}
 intervals using Prometheus. Each \texttt{memoryUsage} and \texttt{outputSize}
 configuration is written into \texttt{components.yaml} and run three times. With
 each run, we recreate all OpenShift components (pods, services, etc.), wait for
@@ -446,6 +499,8 @@ experiment.
     memory usage across execution}
   \label{fig:relative_errors}
 \end{figure}
+
+\section{Example Applications}
 
 \bibliographystyle{abbrv}
 \bibliography{report}
