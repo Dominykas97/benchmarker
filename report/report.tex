@@ -118,7 +118,7 @@ for examples). The former contains basic networking information along with three
 parameters that control the experiment as well as a list of metrics.
 The experiment-specific parameters control how often to send messages
 (\texttt{messagesPerSecond}), how long the experiment should last
-(\texttt{experimentLength}), and how many messages to send at a time
+(\texttt{experimentDuration}), and how many messages to send at a time
 (\texttt{requestsPerMessage}). Each metric is described with three properties:
 \texttt{name}, \texttt{filename}, and \texttt{query}. The last one corresponds
 to the name of the property as defined by Prometheus, while the other two are
@@ -202,7 +202,7 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 messagesPerSecond: 1
-experimentLength: 3 # in seconds
+experimentDuration: 3 # in seconds
 requestsPerMessage: 3
 metrics:
   - name: Throughput
@@ -570,6 +570,7 @@ Similarly, in order to achieve the right \texttt{bandwidth}, we need each node
 to be constructed in $\frac{\texttt{NODE\_SIZE}}{\texttt{bandwidth}}$ time (we
 are assuming that adding a random integer to a list takes a negligible amount of
 time).
+% TODO: long vs int
 
 \begin{algorithm}
   \SetKwData{numRequests}{numRequests}

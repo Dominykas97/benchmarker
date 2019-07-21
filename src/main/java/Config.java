@@ -9,7 +9,7 @@ public class Config {
     public int controlPort;
     public String prometheusHostname;
     public float messagesPerSecond;
-    public int experimentLength;
+    public int experimentDuration;
     public int requestsPerMessage;
     public List<Metric> metrics;
 

@@ -43,7 +43,7 @@ public class ControlServer {
 
     public static void main(String[] args) throws Exception {
         Config config = Config.getInstance();
-        int numMessages = (int) Math.ceil(config.messagesPerSecond * config.experimentLength);
+        int numMessages = (int) Math.ceil(config.messagesPerSecond * config.experimentDuration);
 
         // Send messages to the Flink app
         try (
