@@ -30,7 +30,9 @@ def run_experiment(filename_suffix = ''):
             HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME, new_name)
         subprocess.Popen(command, shell=True)
 
-for memory in map(lambda x: 2**x, range(10)):
+run_experiment()
+
+"""for memory in map(lambda x: 2**x, range(10)):
     print('==========MEMORY =', memory, '==========')
     output = 1
     while output <= int(((memory << 20) - BASE_MEMORY_CONSUMPTION) * BYTES_PER_CHAR / (BYTES_PER_CHAR + 1)) >> 20:
@@ -40,3 +42,4 @@ for memory in map(lambda x: 2**x, range(10)):
         for repetition in range(3):
             run_experiment('_{}_{}_{}'.format(memory, output, repetition))
         output *= 2
+"""

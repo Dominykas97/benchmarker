@@ -2,12 +2,13 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 messagesPerSecond: 1
-experimentLength: 1 # in seconds
+experimentLength: 3 # in seconds
+requestsPerMessage: 3
 metrics:
   - name: Throughput
     filename: throughput
     query: flink_taskmanager_job_task_operator_componentThroughput
-  - name: Heap Usage (MB)
+  - name: Heap Usage (MiB)
     filename: heap
     query: flink_taskmanager_Status_JVM_Memory_Heap_Used
   - name: CPU Load

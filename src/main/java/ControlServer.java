@@ -53,7 +53,8 @@ public class ControlServer {
         ) {
             for (int i = 0; i < numMessages; i++) {
                 System.out.println("Sending " + (i + 1) + "/" + numMessages + " message");
-                out.println(".");
+                for (int j = 0; j < config.requestsPerMessage; j++)
+                    out.println(".");
                 if (i < numMessages - 1)
                     TimeUnit.NANOSECONDS.sleep((long) (1e+9 / config.messagesPerSecond));
             }

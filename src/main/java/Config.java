@@ -10,6 +10,7 @@ public class Config {
     public String prometheusHostname;
     public float messagesPerSecond;
     public int experimentLength;
+    public int requestsPerMessage;
     public List<Metric> metrics;
 
     static Config getInstance() throws Exception {

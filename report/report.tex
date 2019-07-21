@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{booktabs}
 \usepackage{mathtools}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
@@ -65,7 +66,6 @@ happens during execution: how the Flink app interacts with the control server
 and simulates work and how performance metrics are tracked and recorded.
 
 \subsection{Deployment} \label{sec:deployment}
-% TODO: services/pods duality
 
 Flink deployment consists of a JobManager that manages the work, one or more
 TaskManagers that execute tasks, and a command that tells JobManager what to do.
@@ -374,8 +374,6 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 \end{figure}
 
 \section{Experimental Evaluation}
-% TODO: explain the setup (according to experiment.py)
-% measured at 1 s intervals
 
 Experiments were performed in order to determine how well performance metrics
 observed with a standalone Java application transfer to MiniShift. We explore
@@ -502,6 +500,39 @@ experiment.
 
 \section{Example Applications}
 
+\subsection{A Simple Website}
+
+\begin{table}
+  \centering
+  \caption{Performance statistics of the top 100 e-commerce websites}
+  \begin{tabular}{l c c c}
+    \toprule
+    Metric & min & mean & max \\
+    \midrule
+    Page load time (\si{\second}) & \tablenum{0.468} & \tablenum{2.67} & \tablenum{9.67} \\
+    Page size (\si{\mebi\byte}) & \tablenum{0.719} & \tablenum{3.03} & \tablenum{14.21} \\
+    Number of requests made per load & \num{45} & \num{192} & \num{660} \\
+    \bottomrule
+  \end{tabular}
+  \label{tbl:web}
+\end{table}
+
+In order to simulate a website, we need some data about the performance metrics
+of a typical website. We extract the data in Table~\ref{tbl:web} from
+experiments run on popular websites \cite{web_performance}. Thus, we can
+simulate an average website with a single component by making the following
+modelling assumptions:
+\begin{itemize}
+\item $\texttt{cpuTime} = \frac{\text{page load time}}{\text{number of requests
+      per load}} = \frac{\SI{2.67}{\second}}{192} \approx \SI{0.014}{\second}$;
+\item \texttt{memoryUsage} is minimal, i.e., the smallest amount necessary to
+  construct the output string;
+\item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
+      per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
+\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
+\end{itemize}
+
+% TODO: add info about the new global parameter
 \bibliographystyle{abbrv}
 \bibliography{report}
 \end{document}
