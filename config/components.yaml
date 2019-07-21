@@ -1,3 +1,9 @@
-- cpuTime: 1400
-  memoryUsage: 0
-  outputSize: 16.16
+- cpuTime: 0 # ms
+  memoryUsage: 0 # MB
+  outputSize: 1 # KB
+  databaseOnStartup: true
+  numRequests: 2
+  responseSize: 0.002 # MB
+  databaseLatency: 10 # ms
+  bandwidth: 1000 # bytes/s
+  intervalBetweenRequests: 10 # ms

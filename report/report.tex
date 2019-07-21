@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{booktabs}
+\usepackage[T1]{fontenc}
 \usepackage{mathtools}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
@@ -10,6 +11,7 @@
 \usepackage{subcaption}
 \usepackage{tikz-uml}
 \usepackage[binary-units = true]{siunitx}
+\usepackage[ruled, vlined]{algorithm2e}
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
@@ -112,17 +114,18 @@ Configuration Files component in Figure~\ref{fig:uml} represents a
 \texttt{ConfigMap} OpenShift entity created using the \texttt{oc} command that
 contains two configuration files, \texttt{global.yaml} and
 \texttt{components.yaml} (see Figures \ref{fig:global} and \ref{fig:components}
-for examples). The former contains basic networking information along with two
-parameters that control the experiment (\texttt{experimentLength} and
-\texttt{messagesPerSecond}) as well as a list of metrics. The two aforementioned
-experiment-specific parameters together define the frequency and number of
-messages that the control server will send to the Flink app. Each metric is
-described with three properties: \texttt{name}, \texttt{filename}, and
-\texttt{query}. The last one corresponds to the name of the property as defined
-by Prometheus, while the other two are used for data storage and plotting. The
-\texttt{components.yaml} configuration file, on the other hand, describes a
-sequence of processing stages (maps), each with its own CPU usage time, memory
-usage, and output data size (i.e., the amount of data passed to the next stage).
+for examples). The former contains basic networking information along with three
+parameters that control the experiment as well as a list of metrics.
+The experiment-specific parameters control how often to send messages
+(\texttt{messagesPerSecond}), how long the experiment should last
+(\texttt{experimentLength}), and how many messages to send at a time
+(\texttt{requestsPerMessage}). Each metric is described with three properties:
+\texttt{name}, \texttt{filename}, and \texttt{query}. The last one corresponds
+to the name of the property as defined by Prometheus, while the other two are
+used for data storage and plotting. The \texttt{components.yaml} configuration
+file, on the other hand, describes a sequence of processing stages (maps), each
+with its own CPU usage time, memory usage, and output data size (i.e., the
+amount of data passed to the next stage).
 
 % local Prometheus setup
 Lastly, it is worth mentioning that the Prometheus add-on for
@@ -200,6 +203,7 @@ controlPort: 9998
 prometheusHostname: prometheus
 messagesPerSecond: 1
 experimentLength: 3 # in seconds
+requestsPerMessage: 3
 metrics:
   - name: Throughput
     filename: throughput
@@ -532,7 +536,66 @@ modelling assumptions:
 \item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
 \end{itemize}
 
-% TODO: add info about the new global parameter
+\subsection{A Machine Learning System}
+
+\section{Input/Output Simulation}
+
+% TODO: how do we know NODE_SIZE
+
+In order to simulate input/output (I/O) interactions similar to accessing a
+database or reading a file, we introduce a number of new component-specific
+parameters:
+\begin{description}
+\item[$\texttt{databaseOnStartup} = \text{true}$] means that I/O will be
+  simulated only once, during the initialisation stage. Otherwise it will be
+  simulated with every call to \texttt{map()}.
+\item[\texttt{numRequests}] is the number of request-response interactions
+  between the component and the (simulated) data source.
+\item[\texttt{responseSize}] is the size of the response (in \si{\mebi\byte}).
+\item[\texttt{databaseLatency}] is the amount of time spent between a request
+  and receiving the first byte of the response (in \si{\milli\second}).
+\item[\texttt{bandwidth}] is the bandwidth for transferring the response (as the
+  request is assumed to be small) (in \si[per-mode=symbol]{\byte\per\second}).
+\item[\texttt{intervalBetweenRequests}] is the amount of time between receiving
+  a response and sending another request (in \si{\milli\second}).
+\end{description}
+We can then use these variables to simulate an I/O dialogue as described in
+Algorithm~\ref{alg:io} (with unit conversion and rounding operations skipped for
+simplicity). We use a linked list $L$ to gradually construct an object of size
+\texttt{responseSize}, simulating a big file slowly being uploaded to memory.
+Setting the size of a single linked list node as \texttt{NODE\_SIZE} allows us
+to calculate that we need $\frac{\texttt{responseSize}}{\texttt{NODE\_SIZE}}$
+nodes in order to simulate a file transfer of size \texttt{responseSize}.
+Similarly, in order to achieve the right \texttt{bandwidth}, we need each node
+to be constructed in $\frac{\texttt{NODE\_SIZE}}{\texttt{bandwidth}}$ time (we
+are assuming that adding a random integer to a list takes a negligible amount of
+time).
+
+\begin{algorithm}
+  \SetKwData{numRequests}{numRequests}
+  \SetKwData{databaseLatency}{databaseLatency}
+  \SetKwData{responseSize}{responseSize}
+  \SetKwData{nodeSize}{NODE\_SIZE}
+  \SetKwData{bandwidth}{bandwidth}
+  \SetKwData{intervalBetweenRequests}{intervalBetweenRequests}
+  \SetKwFunction{sleep}{sleep}
+  \SetKwFunction{LinkedList}{LinkedList}
+  \SetKw{new}{new}
+  \For{$i \leftarrow 1$ \KwTo \numRequests}{
+    \sleep{\databaseLatency}\;
+    $L \leftarrow$ \new \LinkedList of integers\;
+    \For{$j \leftarrow 1$ \KwTo $\frac{\responseSize}{\nodeSize}$}{
+      add a random integer to $L$\;
+      \sleep{$\frac{\nodeSize}{\bandwidth}$}\;
+    }
+    \If{$i < \numRequests$}{
+      \sleep{\intervalBetweenRequests}\;
+    }
+  }
+  \caption{Simulation of a slow network data transfer}
+  \label{alg:io}
+\end{algorithm}
+
 \bibliographystyle{abbrv}
 \bibliography{report}
 \end{document}

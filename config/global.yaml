@@ -2,8 +2,8 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 messagesPerSecond: 1
-experimentLength: 3 # in seconds
-requestsPerMessage: 3
+experimentLength: 1 # in seconds
+requestsPerMessage: 1
 metrics:
   - name: Throughput
     filename: throughput
