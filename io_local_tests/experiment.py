@@ -1,8 +1,6 @@
 import subprocess
 import statistics
 
-memory = 1
-
 with open('results.csv', 'w') as results:
     for num_nodes in [0] + [2**x for x in range(25)]:
         usage = []

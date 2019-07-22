@@ -18,7 +18,7 @@ public class Component {
     // These constants are measure experimentally. The error seems to be within 0.5 MB.
     private static final int BASE_MEMORY_CONSUMPTION = 40 << 20; // 40 MB
     private static final double BYTES_PER_CHAR = 3.26845703125; // measured experimentally
-    private static final int NODE_SIZE = 38; // in bytes
+    private static final int NODE_SIZE = 37; // in bytes
     private static final int BYTES_IN_MB = 1 << 20;
     private static final int BYTES_IN_KB = 1 << 10;
 
@@ -42,16 +42,16 @@ public class Component {
         numNodesL = Long.parseLong(args[0]);
 
         // Memory calculations
-        /*int stringLength = (int) (outputSize * BYTES_IN_KB / BYTES_PER_CHAR);
-        int arraySize = (int) (memoryUsage * BYTES_IN_MB - BASE_MEMORY_CONSUMPTION - outputSize * BYTES_IN_KB);
-        arraySize = Math.max(arraySize, stringLength); // arraySize >= stringLength*/
+        int stringLength = Integer.parseInt(args[2]);
+        int arraySize = Integer.parseInt(args[1]);
+        assert(arraySize >= stringLength);
 
         // Fill the required amount of memory with random data
-        /*byte[] memory = new byte[arraySize];
-        new Random().nextBytes(memory);*/
+        byte[] memory = new byte[arraySize];
+        new Random().nextBytes(memory);
 
         // Construct the output string
-        //String out = new String(memory, 0, stringLength);
+        String out = new String(memory, 0, stringLength);
 
         simulateDatabaseAccess();
     }

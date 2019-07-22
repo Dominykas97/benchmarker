@@ -13,6 +13,8 @@
 \usepackage[binary-units = true]{siunitx}
 \usepackage[ruled, vlined]{algorithm2e}
 
+\DeclareSIUnit{\million}{\text{million}}
+
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
 
@@ -540,8 +542,6 @@ modelling assumptions:
 
 \section{Input/Output Simulation}
 
-% TODO: how do we know NODE_SIZE
-
 In order to simulate input/output (I/O) interactions similar to accessing a
 database or reading a file, we introduce a number of new component-specific
 parameters:
@@ -596,6 +596,68 @@ time).
   \caption{Simulation of a slow network data transfer}
   \label{alg:io}
 \end{algorithm}
+
+\subsection{Calibration}
+
+In order to use this model, we need to know the \texttt{NODE\_SIZE}. We measured
+memory usage of a standalone Java program with a linked list, where the number
+of nodes on the list was set to: $0, 1, 2, 2^2, \dots, 2^{24} \approx
+\SI{17}{\million}$, repeating each experiment five times and recording the
+median. Memory usage reached up to \SI{1.2}{\gibi\byte}. Fitting a simple linear
+regression model
+\[
+  \text{memory usage} = \beta_0 + \beta_1 \times \text{number of nodes} +
+  \epsilon
+\]
+leaves us with relative errors in Figure~\ref{fig:linear}. As one can observe,
+this model consistently underestimates memory usage of small lists. Adding a
+quadratic term, i.e.,
+\[
+  \text{memory usage} = \beta_0 + \beta_1 \times \text{number of nodes} +
+  \beta_2 \times \text{number of nodes}^2 + \epsilon,
+\]
+fixes the problem, as can be seen in Figure~\ref{fig:quadratic}. While
+prediction errors can still go up to 11.6\%, they are both positive and
+negative, indicating that memory usage of large lists is an unstable metric, one
+that cannot be easily predicted. The best-fit values for the $\beta$ parameters
+are:
+\begin{align*}
+  \beta_0 &= \SI{2.362e7}{\byte} \approx \SI{22.5}{\mebi\byte}, \\
+  \beta_1 &= \SI{60.36}{\byte}, \\
+  \beta_2 &= \SI{5.553e-7}{\byte}.
+\end{align*}
+While $\beta_2$ is very small, it makes an important difference.
+
+% so this is not a constant, after all
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/relative_errors_linear.png}
+    \caption{linear model}
+    \label{fig:linear}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/relative_errors_quadratic.png}
+    \caption{quadratic model}
+    \label{fig:quadratic}
+  \end{subfigure}
+  \caption{Relative memory usage prediction errors for linear and quadratic
+    regression models}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../io_local_tests/3d_scatter.png}
+\end{figure}
+
+\[
+  \text{memory usage} = \SI{22.6}{\mebi\byte} + 1.463 \times \text{array size} +
+  8.708 \times \text{string length} + 65.94 \times \text{number of nodes} +
+  \epsilon
+\]
 
 \bibliographystyle{abbrv}
 \bibliography{report}
