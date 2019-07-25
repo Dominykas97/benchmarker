@@ -9,11 +9,13 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{subcaption}
+\usepackage{tikz}
 \usepackage{tikz-uml}
 \usepackage[binary-units = true]{siunitx}
 \usepackage[ruled, vlined]{algorithm2e}
 
 \DeclareSIUnit{\million}{\text{million}}
+\usetikzlibrary{arrows.meta}
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
@@ -506,7 +508,7 @@ experiment.
 
 \section{Example Applications}
 
-\subsection{A Simple Website}
+\paragraph{A Simple Website}
 
 \begin{table}
   \centering
@@ -538,7 +540,50 @@ modelling assumptions:
 \item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
 \end{itemize}
 
-\subsection{A Machine Learning System}
+\paragraph{A Machine Learning System}
+
+For a realistic model of a machine learning (ML) system, we measured a
+classification system used to construct algorithm portfolios (akin to
+\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package Llama
+\cite{kotthoff_llama_2013} and run on a thousand maximum common subgraph
+problems and three algorithms. The resulting performance metrics are displayed
+in Figure~\ref{fig:ml_diagram}. Sending a single message, then, corresponds to
+selecting a subset of data, generating features, and training an ML model.
+
+\setlength{\tabcolsep}{3pt}
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[component/.style={draw, text width=3.5cm, align=center}]
+    \node[component] at (0, 0) (filtering) {
+      \textbf{Data filtering}\\
+      \begin{tabular}{r l}
+        CPU: & \SI{170}{\milli\second}\\
+        Memory: & \SI{52}{\mebi\byte}
+      \end{tabular}
+    };
+    \node[component] at (6, 0) (features) {
+      \textbf{Feature generation}\\
+      \begin{tabular}{r l}
+        CPU: & \SI{12}{\minute}\\
+        Memory: & \SI{60}{\mebi\byte}
+      \end{tabular}
+    };
+    \node[component] at (12, 0) (learning) {
+      \textbf{Learning}
+      \begin{tabular}{r l}
+        CPU: & \SI{90}{\second}\\
+        Memory: & \SI{664}{\mebi\byte}
+      \end{tabular}
+    };
+    \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
+    \draw[-{Latex[length=2mm]}] (features) -- node[below] {\SI{500}{\kibi\byte}} (learning);
+    \draw[-{Latex[length=2mm]}] (learning) -- node[left] {\SI{20}{\mebi\byte}} (12, -2);
+  \end{tikzpicture}
+  \caption{A model for a machine learning system, displaying typical resource
+    usage metrics}
+  \label{fig:ml_diagram}
+\end{figure}
+\setlength{\tabcolsep}{6pt}
 
 \section{Input/Output Simulation}
 
@@ -551,7 +596,7 @@ parameters:
   simulated with every call to \texttt{map()}.
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
-\item[\texttt{responseSize}] is the size of the response (in \si{\mebi\byte}).
+\item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
 \item[\texttt{databaseLatency}] is the amount of time spent between a request
   and receiving the first byte of the response (in \si{\milli\second}).
 \item[\texttt{bandwidth}] is the bandwidth for transferring the response (as the
@@ -651,13 +696,65 @@ While $\beta_2$ is very small, it makes an important difference.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{../io_local_tests/3d_scatter.png}
+  \caption{Errors of the regression model}
 \end{figure}
 
 \[
-  \text{memory usage} = \SI{22.6}{\mebi\byte} + 1.463 \times \text{array size} +
+  \text{memory usage} = \SI{23}{\mebi\byte} + 1.463 \times \text{array size} +
   8.708 \times \text{string length} + 65.94 \times \text{number of nodes} +
   \epsilon
 \]
+
+\begin{figure}
+  \centering
+   \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/experiment3errors1.png}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/experiment3errors2.png}
+  \end{subfigure}
+  \caption{Errors after incorporating the predictive model}
+  \label{fig:empirical_errors}
+\end{figure}
+
+After incorporating this equation into the \texttt{Component} class, we can test
+its accuracy by running a set of experiments. We set \texttt{memoryUsage} to
+$2^0, 2^1, \dots, \SI[exponent-base = 2]{e9}{\mebi\byte}$, while the values of
+\texttt{outputSize} and \texttt{responseSize} are all powers of two
+\si{\mebi\byte} small enough so that the output string size and the linked list
+size add up to at most \texttt{memoryUsage}. The results are in
+Figure~\ref{fig:empirical_errors}. We can see two situations where observations
+stray from expectations: high \texttt{outputSize} and high \texttt{memoryUsage}
+(where observations are about 30\% smaller than predicted) and low
+\texttt{memoryUsage}, (comparatively) high \texttt{outputSize} and
+\texttt{responseSize}. Let us see if we can do better with a quadratic model
+instead.
+% 3 repetitions, median
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../io_local_tests/quadratic_prediction_errors.png}
+  \caption{Quadratic model: prediction errors}
+\end{figure}
+
+\begin{alignat*}{3}
+  \text{memory usage} = \beta_0 &+ \beta_1 \times \text{array size} &&+ \beta_2
+  \times \text{string length} & &+ \beta_3 \times \text{number of nodes} \\
+  &+ \beta_4 \times \text{array size}^2 &&+ \beta_5 \times \text{string
+    length}^2 & &+ \beta_6 \times \text{number of nodes}^2 + \epsilon,
+\end{alignat*}
+where
+\begin{align*}
+  \beta_0 &= \SI{22.62}{\mebi\byte}, \\
+  \beta_1 &= \num{3.888}, \\
+  \beta_2 &= \num{39.97}, \\
+  \beta_3 &= \num{51.97}, \\
+  \beta_4 &= -\num{2.695e-6}, \\
+  \beta_5 &= -\num{3.128e-5}, \\
+  \beta_6 &= \num{1.385e-5}.
+\end{align*}
 
 \bibliographystyle{abbrv}
 \bibliography{report}

@@ -15,7 +15,7 @@ public class Component extends RichMapFunction<String, String> {
 
     public boolean databaseOnStartup; // true: database access is simulated at the start, false: with each map
     public int numRequests; // how many requests to make to the database
-    public double responseSize; // size of a single database response (in MB)
+    public double responseSize; // size of a single database response (in KB)
     public double databaseLatency; // the amount of time between a request and the first byte of the response (in ms)
     public double bandwidth; // database response bandwidth (in bytes/s)
     public double intervalBetweenRequests; // how long to wait between database requests (in ms)
@@ -32,7 +32,7 @@ public class Component extends RichMapFunction<String, String> {
     private void simulateDatabaseAccess() throws Exception {
         int latency = (int) (databaseLatency * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
         int sleepTime = (int) (intervalBetweenRequests * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
-        int numNodes = (int) (responseSize * BYTES_IN_MB / NODE_SIZE);
+        int numNodes = (int) (responseSize * BYTES_IN_KB / NODE_SIZE);
         int bandwidthLatency = (int) (NODE_SIZE / bandwidth * TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS));
         Random rng = new Random();
 

@@ -3,7 +3,7 @@
   outputSize: 1 # KB
   databaseOnStartup: true
   numRequests: 2
-  responseSize: 0.002 # MB
+  responseSize: 2 # KB
   databaseLatency: 10 # ms
   bandwidth: 1000 # bytes/s
   intervalBetweenRequests: 10 # ms
