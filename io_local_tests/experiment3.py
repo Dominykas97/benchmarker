@@ -6,7 +6,7 @@ MB = 1 << 20
 BASE_MEMORY_CONSUMPTION = 23 << 20
 BYTES_PER_CHAR = 8.708
 
-with open('results3.csv', 'w') as results:
+with open('results3_2.csv', 'w') as results:
     for memory_usage in [2**x for x in range(10)]:
         leftover_memory = memory_usage * MB - BASE_MEMORY_CONSUMPTION
         if leftover_memory <= 0:

@@ -1,11 +1,14 @@
 # Exploring how well the linear regression model works in practice
 
-data <- read.csv("results3.csv", header = FALSE)
+data <- read.csv("results3_2.csv", header = FALSE)
 names(data) <- c("expected_memory_usage", "output_size", "response_size", "memory")
 data$expected_memory_usage <- data$expected_memory_usage * 1024
 attach(data)
 
 rel_errors <- (memory - expected_memory_usage) / expected_memory_usage
+errors <- (memory - expected_memory_usage) / 1024
+plot(rel_errors)
+plot(errors)
 
 library(plotly)
 plot_ly(x = response_size, y = output_size, z = expected_memory_usage, type = "scatter3d", mode = "markers",

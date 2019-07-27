@@ -615,7 +615,6 @@ Similarly, in order to achieve the right \texttt{bandwidth}, we need each node
 to be constructed in $\frac{\texttt{NODE\_SIZE}}{\texttt{bandwidth}}$ time (we
 are assuming that adding a random integer to a list takes a negligible amount of
 time).
-% TODO: long vs int
 
 \begin{algorithm}
   \SetKwData{numRequests}{numRequests}
@@ -629,7 +628,7 @@ time).
   \SetKw{new}{new}
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
     \sleep{\databaseLatency}\;
-    $L \leftarrow$ \new \LinkedList of integers\;
+    $L \leftarrow$ \new \LinkedList of 64-bit integers\;
     \For{$j \leftarrow 1$ \KwTo $\frac{\responseSize}{\nodeSize}$}{
       add a random integer to $L$\;
       \sleep{$\frac{\nodeSize}{\bandwidth}$}\;
@@ -755,6 +754,62 @@ where
   \beta_5 &= -\num{3.128e-5}, \\
   \beta_6 &= \num{1.385e-5}.
 \end{align*}
+We then have that
+\[
+  \texttt{outputSize} \approx \beta_2 \times \text{string length} + \beta_5
+  \times \text{string length}^2
+\]
+and
+\[
+  \texttt{responseSize} \approx \beta_3 \times \text{number of nodes} + \beta_6
+  \times \text{number of nodes}^2
+\]
+
+\begin{figure}
+  \centering
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit1.png}
+  \end{subfigure}
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit2.png}
+  \end{subfigure}
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit3.png}
+  \end{subfigure}
+  \caption{Linearity check passes}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../io_local_tests/post_fix_errors.png}
+  \caption{After applying the linear model, as the expected memory usage
+    increases, prediction errors (in MiB) get progressively worse (i.e., we
+    expect to use more memory than we actually do).}
+\end{figure}
+
+\begin{figure}
+  \centering
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/prediction_errors.png}
+  \end{subfigure}
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable1.png}
+  \end{subfigure}
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable2.png}
+  \end{subfigure}
+   \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable.png}
+  \end{subfigure}
+  \caption{Prediction errors: overall and per-variable}
+\end{figure}
 
 \bibliographystyle{abbrv}
 \bibliography{report}

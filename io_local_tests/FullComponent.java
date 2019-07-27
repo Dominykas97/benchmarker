@@ -15,10 +15,10 @@ public class FullComponent {
     public static double intervalBetweenRequests = 0; // how long to wait between database requests (in ms)
 
     // These constants are measure experimentally. Relative errors are within 12%
-    private static final int BASE_MEMORY_CONSUMPTION = 23 << 20; // 23 MB
-    private static final double BYTES_PER_BYTE = 1.463; // yes, this sounds super weird
-    private static final double BYTES_PER_CHAR = 8.708; // theoretically, this should be ~2
-    private static final double NODE_SIZE = 65.94; // theoretically, this should be 37 (but I could be wrong)
+    private static final double BASE_MEMORY_CONSUMPTION = 2.398e7 ; // 23 MB
+    private static final double BYTES_PER_BYTE = 1.472; // yes, this sounds super weird
+    private static final double BYTES_PER_CHAR = 8.812; // theoretically, this should be ~2
+    private static final double NODE_SIZE = 66.14; // theoretically, this should be 37 (but I could be wrong)
     private static final int BYTES_IN_MB = 1 << 20;
     private static final int BYTES_IN_KB = 1 << 10;
 
@@ -45,8 +45,8 @@ public class FullComponent {
 
         // Memory calculations
         int stringLength = (int) (outputSize * BYTES_IN_KB / BYTES_PER_CHAR);
-        int arraySize = (int) (memoryUsage * BYTES_IN_MB - BASE_MEMORY_CONSUMPTION - outputSize * BYTES_IN_KB -
-                               responseSize * BYTES_IN_KB);
+        int arraySize = (int) ((memoryUsage * BYTES_IN_MB - BASE_MEMORY_CONSUMPTION - outputSize * BYTES_IN_KB -
+                               responseSize * BYTES_IN_KB) / BYTES_PER_BYTE);
         arraySize = Math.max(arraySize, stringLength); // arraySize >= stringLength
 
         // Fill the required amount of memory with random data
