@@ -20,8 +20,15 @@
 
 \maketitle
 
-\begin{frame}{Introduction}
-  % TODO: mention prometheus, OpenShfit, Docker, etc.
+\begin{frame}{Main Ingredients}
+  \centering
+  \includegraphics[height=0.89\textheight]{creation.jpg}
+  \begin{tikzpicture}[remember picture,overlay]
+    \node at (-7.5, 4.5) {\includegraphics[width=100pt]{openshift.png}};
+    \node at (-2.6, 5) {\colorbox{white}{\includegraphics[width=50pt]{docker.png}}};
+    \node at (-7.5, 0.9) {\includegraphics[width=75pt]{flink.png}};
+    \node at (-2.6, 0.7) {\colorbox{white}{\includegraphics[width=100pt]{prometheus.png}}};
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{The General Idea}
@@ -167,6 +174,9 @@
     \end{itemize}
   \item Complex component topologies
   \item More performance metrics (e.g. end-to-end latency)
+    \begin{itemize}
+    \item and example applications
+    \end{itemize}
   \end{itemize}
 \end{frame}
 

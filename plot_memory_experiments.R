@@ -51,7 +51,7 @@ for (expected_heap_usage in c(64, 128, 256, 512)) {
   }
   df <- rbind(df, mean_df, median_df)
 
-  ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time (s)") + ylab("Heap Usage (MiB)") +
+  ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time (s)") + ylab("memory usage (MiB)") +
     geom_line(aes(group = variable), colour = df$colour, size = df$size) +
     geom_ribbon(data = std_df, aes(x = timestamp, y = mean, ymin = mean - std, ymax = mean + std),
                 fill = colour$blue, alpha = 0.1) +
@@ -71,9 +71,16 @@ for (expected in all_expected) {
   }
 }
 
+# Draw a heatmap with a colormap centered around zero, even if it's not the center of the interval
 myPanel <- function(x, y, z, ...) {
   panel.levelplot(x, y, z, ...)
   panel.text(x, y, round(z, 2))
 }
-
-levelplot(matrix, pretty = TRUE, panel = myPanel, xlab = "output size (MiB)", ylab = "expected heap usage (MiB)")
+cols <- colorRampPalette(brewer.pal(11, "RdBu"))(110)
+max_abs <- max(abs(matrix), na.rm = TRUE)
+brk <- do.breaks(c(-max_abs, max_abs), 110)
+first_true <- which.max(brk > min(matrix, na.rm = TRUE))
+brk <- brk[(first_true - 1):length(brk)]
+cols <- cols[(first_true - 1):length(cols)]
+levelplot(matrix, pretty = TRUE, panel = myPanel, xlab = "string size (MiB)", ylab = "expected memory usage (MiB)",
+          col.regions = cols, at = brk, colorkey = list(col = cols, at = brk))
