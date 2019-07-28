@@ -29,7 +29,6 @@ public class Benchmarker {
         DataStream<String> dataStream = env.socketTextStream(config.controlHostname, config.controlPort);
         for (Component component : components)
             dataStream = dataStream.map(component);
-        dataStream.print();
         JobExecutionResult result = env.execute();
 
         // Send the server the job's running time

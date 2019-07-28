@@ -1,4 +1,4 @@
-- cpuTime: 0 # ms
+- cpuTime: 5 # ms
   memoryUsage: 0 # MB
   outputSize: 1 # KB
   databaseOnStartup: true
