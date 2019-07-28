@@ -14,11 +14,11 @@ public class FullComponent {
     public static double bandwidth = 0; // database response bandwidth (in bytes/s)
     public static double intervalBetweenRequests = 0; // how long to wait between database requests (in ms)
 
-    // These constants are measure experimentally. Relative errors are within 12%
-    private static final double BASE_MEMORY_CONSUMPTION = 2.398e7 ; // 23 MB
-    private static final double BYTES_PER_BYTE = 1.472; // yes, this sounds super weird
-    private static final double BYTES_PER_CHAR = 8.812; // theoretically, this should be ~2
-    private static final double NODE_SIZE = 66.14; // theoretically, this should be 37 (but I could be wrong)
+    // These constants are measure experimentally
+    private static final double BASE_MEMORY_CONSUMPTION = 2.459e7;
+    private static final double BYTES_PER_BYTE = 1.008; // yes, this sounds super weird
+    private static final double BYTES_PER_CHAR = 3.964; // theoretically, this should be ~2
+    private static final double NODE_SIZE = 55.1; // theoretically, this should be 37 (but I could be wrong)
     private static final int BYTES_IN_MB = 1 << 20;
     private static final int BYTES_IN_KB = 1 << 10;
 
