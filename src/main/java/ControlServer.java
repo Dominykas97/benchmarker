@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.security.cert.X509Certificate;
+import java.time.Period;
 import java.util.concurrent.TimeUnit;
 
 public class ControlServer {
@@ -43,7 +44,8 @@ public class ControlServer {
 
     public static void main(String[] args) throws Exception {
         Config config = Config.getInstance();
-        int numMessages = (int) Math.ceil(config.messagesPerSecond * config.experimentDuration);
+        PeriodicUser user = (PeriodicUser) config.user;
+        int numMessages = (int) Math.ceil(user.messagesPerSecond * user.experimentDuration);
 
         // Send messages to the Flink app
         try (
@@ -53,10 +55,10 @@ public class ControlServer {
         ) {
             for (int i = 0; i < numMessages; i++) {
                 System.out.println("Sending " + (i + 1) + "/" + numMessages + " message");
-                for (int j = 0; j < config.requestsPerMessage; j++)
+                for (int j = 0; j < user.requestsPerMessage; j++)
                     out.println(".");
                 if (i < numMessages - 1)
-                    TimeUnit.NANOSECONDS.sleep((long) (1e+9 / config.messagesPerSecond));
+                    TimeUnit.NANOSECONDS.sleep((long) (1e+9 / user.messagesPerSecond));
             }
         }
 

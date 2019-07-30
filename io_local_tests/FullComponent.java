@@ -15,10 +15,10 @@ public class FullComponent {
     public static double intervalBetweenRequests = 0; // how long to wait between database requests (in ms)
 
     // These constants are measure experimentally
-    private static final double BASE_MEMORY_CONSUMPTION = 2.459e7;
-    private static final double BYTES_PER_BYTE = 1.008; // yes, this sounds super weird
-    private static final double BYTES_PER_CHAR = 3.964; // theoretically, this should be ~2
-    private static final double NODE_SIZE = 55.1; // theoretically, this should be 37 (but I could be wrong)
+    private static final double BASE_MEMORY_CONSUMPTION = 2.409e7;
+    private static final double BYTES_PER_BYTE = 1.016; // yes, this sounds super weird
+    private static final double BYTES_PER_CHAR = 5.79; // theoretically, this should be ~2
+    private static final double NODE_SIZE = 61.94; // theoretically, this should be 37 (but I could be wrong)
     private static final int BYTES_IN_MB = 1 << 20;
     private static final int BYTES_IN_KB = 1 << 10;
 

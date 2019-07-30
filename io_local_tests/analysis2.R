@@ -1,52 +1,39 @@
-# Building a linear regression model for predictions
+# Exploring how well the linear regression model works in practice
+library(ggplot2)
 
-data <- read.csv("results2_3.csv", header = FALSE)
-names(data) <- c("array_size", "string_length", "num_nodes", "memory")
+data <- read.csv("results2.csv", header = FALSE)
+names(data) <- c("expected_memory_usage", "output_size", "response_size", "memory")
+data$expected_memory_usage <- data$expected_memory_usage * 1024
 attach(data)
-memory <- memory * 1024
 
-# Only linear terms
-
-regression <- lm(memory ~ array_size + string_length + num_nodes)
-predictions <- cbind(1, as.matrix(data)[, 1:3]) %*% cbind(regression$coefficients)
-
-# Weighted regression?
-weights <- 1 / memory ^ 2
-regression <- lm(memory ~ array_size + string_length + num_nodes, weights = weights)
-predictions <- cbind(1, as.matrix(data)[, 1:3]) %*% cbind(regression$coefficients)
-
-# Quadratic terms
-
-array_size2 <- array_size ^ 2
-string_length2 <- string_length ^ 2
-num_nodes2 <- num_nodes ^ 2
-
-regression <- lm(memory ~ array_size + string_length + num_nodes + array_size2 + string_length2 + num_nodes2)
-predictions <- cbind(1, as.matrix(data)[, 1:3], array_size2, string_length2, num_nodes2) %*% cbind(regression$coefficients)
-
-# Results & plotting
-
-summary(regression)
-
-rel_errors <- (predictions - memory) / memory
-errors <- predictions - memory
-summary(rel_errors)
-
-# 3D relative error plot
-source("../plotting.R")
-coloured_scatter_3d(array_size, num_nodes, string_length, rel_errors,
-                    "array size", "number of nodes", "string length", "relative error")
-
-plot(array_size, memory, log = "xy")
-abline(regression$coefficients[1], regression$coefficients[2], untf = TRUE)
-plot(string_length, memory, log = "xy")
-abline(regression$coefficients[1], regression$coefficients[3], untf = TRUE)
-plot(num_nodes, memory, log = "xy")
-abline(regression$coefficients[1], regression$coefficients[4], untf = TRUE)
-
-plot(errors)
+rel_errors <- (memory - expected_memory_usage) / expected_memory_usage
+errors <- (memory - expected_memory_usage) / 1024
 plot(rel_errors)
-plot(array_size, errors, log = "x")
-plot(string_length, errors, log = "x")
-plot(num_nodes, errors, log = "x")
+plot(errors)
 
+source("../plotting.R")
+coloured_scatter_3d(response_size, output_size, expected_memory_usage, rel_errors,
+                    "response size", "output size", "expected memory usage", "relative error")
+coloured_scatter_3d(response_size, output_size, expected_memory_usage, errors,
+                    "response size", "output size", "expected memory usage", "error (MiB)")
+
+plot(expected_memory_usage, memory, log = "xy")
+abline(0, 1)
+
+plot(density(rel_errors), main = "")
+plot(density(errors), main = "")
+sum(rel_errors < 0.1 & rel_errors > -0.1) / length(rel_errors)
+sum(errors > 1000 * 1024 | errors < 1000 * 1024) / length(errors)
+
+plot(expected_memory_usage, errors, log = "x") # increase in variance
+plot(output_size, errors, log = "x") # a shift from positive to negative
+plot(response_size, errors, log = "x") # increase in variance
+
+df <- data.frame(expected_memory_usage = as.factor(expected_memory_usage / 1024), output_size = as.factor(output_size),
+                 response_size = as.factor(response_size), errors = errors, rel_errors = rel_errors)
+ggplot(df, aes(x = expected_memory_usage, y = errors)) + geom_violin() + scale_x_discrete(name = "expected memory usage") +
+  scale_y_continuous(name = "error (MiB)")
+ggplot(df, aes(x = output_size, y = errors)) + geom_violin() + scale_x_discrete(name = "output size") +
+  scale_y_continuous(name = "error (MiB)")
+ggplot(df, aes(x = response_size, y = errors)) + geom_violin() + scale_x_discrete(name = "response size") +
+  scale_y_continuous(name = "error (MiB)")

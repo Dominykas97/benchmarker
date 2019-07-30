@@ -8,10 +8,8 @@ public class Config {
     public String controlHostname;
     public int controlPort;
     public String prometheusHostname;
-    public float messagesPerSecond;
-    public int experimentDuration;
-    public int requestsPerMessage;
     public List<Metric> metrics;
+    public User user;
 
     static Config getInstance() throws Exception {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

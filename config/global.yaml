@@ -1,9 +1,6 @@
 controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
-messagesPerSecond: 1
-experimentDuration: 1 # in seconds
-requestsPerMessage: 1
 metrics:
   - name: Throughput
     filename: throughput
@@ -14,3 +11,7 @@ metrics:
   - name: CPU Load
     filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load
+user:
+  messagesPerSecond: 1
+  experimentDuration: 1 # in seconds
+  requestsPerMessage: 1

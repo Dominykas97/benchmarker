@@ -643,172 +643,193 @@ time).
 
 \subsection{Calibration}
 
-In order to use this model, we need to know the \texttt{NODE\_SIZE}. We measured
-memory usage of a standalone Java program with a linked list, where the number
-of nodes on the list was set to: $0, 1, 2, 2^2, \dots, 2^{24} \approx
-\SI{17}{\million}$, repeating each experiment five times and recording the
-median. Memory usage reached up to \SI{1.2}{\gibi\byte}. Fitting a simple linear
-regression model
-\[
-  \text{memory usage} = \beta_0 + \beta_1 \times \text{number of nodes} +
-  \epsilon
-\]
-leaves us with relative errors in Figure~\ref{fig:linear}. As one can observe,
-this model consistently underestimates memory usage of small lists. Adding a
-quadratic term, i.e.,
-\[
-  \text{memory usage} = \beta_0 + \beta_1 \times \text{number of nodes} +
-  \beta_2 \times \text{number of nodes}^2 + \epsilon,
-\]
-fixes the problem, as can be seen in Figure~\ref{fig:quadratic}. While
-prediction errors can still go up to 11.6\%, they are both positive and
-negative, indicating that memory usage of large lists is an unstable metric, one
-that cannot be easily predicted. The best-fit values for the $\beta$ parameters
-are:
+Once again, we need to calibrate the problem to ensure that it uses the right
+amount of memory (and also to determine the value of \texttt{NODE\_SIZE}). This
+time, we perform a much larger set of experiments, where the independent
+variables are assigned the following values:
 \begin{align*}
-  \beta_0 &= \SI{2.362e7}{\byte} \approx \SI{22.5}{\mebi\byte}, \\
-  \beta_1 &= \SI{60.36}{\byte}, \\
-  \beta_2 &= \SI{5.553e-7}{\byte}.
+  \text{array size} &= 1, 3, 5, 7, 9, 10, 30, 50, 70, 90, 100, \dots, \num{8e8}, \num{9e8}, \\
+  \text{string length} &= 1, 3, 5, 7, 9, 10, \dots, \num{9e6} \text{ (also ensuring that $\text{string length} \le \text{array size}$)}, \\
+  \text{number of nodes} &= 1, 3, 5, 7, 9, 10, \dots, \num{9e6}.
 \end{align*}
-While $\beta_2$ is very small, it makes an important difference.
 
-% so this is not a constant, after all
+We also employ weighted simple linear regression in order to minimise squared
+relative error. This way, the model prioritises minimising error on smaller
+values, where the measured values are likely to be more accurate. More
+precisely, while the ordinary least squares approach would minimise
+\[
+  \sum_i (y_i - \hat{y}_i)^2,
+\]
+we minimise
+\[
+  \sum_i \left( \frac{y_i - \hat{y}_i}{y_i} \right)^2
+\]
+instead. Here, $y$ is the dependent variable (memory usage), $y_i$ marks each
+recorded value, and $\hat{y}_i$ is the model's prediction of $y_i$ according to
+the independent variables.
+
+This model estimates base memory consumption to be $\SI{2.409e7}{\byte} \approx
+\SI{23}{\mebi\byte}$ and states that each element of a byte array uses 1.016
+bytes, each character of a string uses 5.79 bytes, and each node of a linked
+list uses 61.94 bytes.
+
+While relative errors vary from $-38\%$ to $39\%$, $88\%$ of them are within
+$\pm10\%$ (see density plots in Figure~\ref{fig:prediction_density}).
+Figure~\ref{fig:prediction_errors} clearly shows the number of nodes to be the
+troublesome variable: relative errors are at their worst with the number of
+nodes being around one million. Furthermore, as can be seen in
+Figure~\ref{fig:prediction_error_b}, high (non-relative) errors only occur when
+the number of nodes parameter is at its highest. Using
+Figure~\ref{fig:prediction_violins} we can infer how the model functions under
+different values of the independent variables. To begin with, errors are stable
+throughout most of the string length values, except for the last few. For array
+size, we can see that the linearity assumption starts to break down towards the
+last one fourth of the values, where there is an increase in error magnitude, a
+shift towards primarily positive errors, and some significant negative outliers.
+The same story applies to the number of nodes as well, except there is a more
+significant drop in mean error per constant number of nodes, before the errors
+become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
+
+% TODO: edit this section.
 
 \begin{figure}
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/relative_errors_linear.png}
-    \caption{linear model}
-    \label{fig:linear}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_density_relative.png}
+    \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/relative_errors_quadratic.png}
-    \caption{quadratic model}
-    \label{fig:quadratic}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_density_errors.png}
+    \caption{errors (in \si{\mebi\byte})}
   \end{subfigure}
-  \caption{Relative memory usage prediction errors for linear and quadratic
-    regression models}
+  \caption{Density plots of errors}
+  \label{fig:prediction_density}
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../io_local_tests/3d_scatter.png}
-  \caption{Errors of the regression model}
-\end{figure}
-
-\[
-  \text{memory usage} = \SI{23}{\mebi\byte} + 1.463 \times \text{array size} +
-  8.708 \times \text{string length} + 65.94 \times \text{number of nodes} +
-  \epsilon
-\]
-
-\begin{figure}
-  \centering
-   \begin{subfigure}[t]{0.49\textwidth}
+  \begin{subfigure}[t]{\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/experiment3errors1.png}
+    \includegraphics[width=0.5\textwidth]{../io_local_tests/plots/prediction_relative1.png}\includegraphics[width=0.5\textwidth]{../io_local_tests/plots/prediction_relative2.png}
+    \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/experiment3errors2.png}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_errors.png}
+    \caption{errors}
+    \label{fig:prediction_error_b}
   \end{subfigure}
-  \caption{Errors after incorporating the predictive model}
-  \label{fig:empirical_errors}
-\end{figure}
-
-After incorporating this equation into the \texttt{Component} class, we can test
-its accuracy by running a set of experiments. We set \texttt{memoryUsage} to
-$2^0, 2^1, \dots, \SI[exponent-base = 2]{e9}{\mebi\byte}$, while the values of
-\texttt{outputSize} and \texttt{responseSize} are all powers of two
-\si{\mebi\byte} small enough so that the output string size and the linked list
-size add up to at most \texttt{memoryUsage}. The results are in
-Figure~\ref{fig:empirical_errors}. We can see two situations where observations
-stray from expectations: high \texttt{outputSize} and high \texttt{memoryUsage}
-(where observations are about 30\% smaller than predicted) and low
-\texttt{memoryUsage}, (comparatively) high \texttt{outputSize} and
-\texttt{responseSize}. Let us see if we can do better with a quadratic model
-instead.
-% 3 repetitions, median
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{../io_local_tests/quadratic_prediction_errors.png}
-  \caption{Quadratic model: prediction errors}
-\end{figure}
-
-\begin{alignat*}{3}
-  \text{memory usage} = \beta_0 &+ \beta_1 \times \text{array size} &&+ \beta_2
-  \times \text{string length} & &+ \beta_3 \times \text{number of nodes} \\
-  &+ \beta_4 \times \text{array size}^2 &&+ \beta_5 \times \text{string
-    length}^2 & &+ \beta_6 \times \text{number of nodes}^2 + \epsilon,
-\end{alignat*}
-where
-\begin{align*}
-  \beta_0 &= \SI{22.62}{\mebi\byte}, \\
-  \beta_1 &= \num{3.888}, \\
-  \beta_2 &= \num{39.97}, \\
-  \beta_3 &= \num{51.97}, \\
-  \beta_4 &= -\num{2.695e-6}, \\
-  \beta_5 &= -\num{3.128e-5}, \\
-  \beta_6 &= \num{1.385e-5}.
-\end{align*}
-We then have that
-\[
-  \texttt{outputSize} \approx \beta_2 \times \text{string length} + \beta_5
-  \times \text{string length}^2
-\]
-and
-\[
-  \texttt{responseSize} \approx \beta_3 \times \text{number of nodes} + \beta_6
-  \times \text{number of nodes}^2
-\]
-
-\begin{figure}
-  \centering
-   \begin{subfigure}{0.49\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit1.png}
-  \end{subfigure}
-   \begin{subfigure}{0.49\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit2.png}
-  \end{subfigure}
-   \begin{subfigure}{0.49\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/linear_fit3.png}
-  \end{subfigure}
-  \caption{Linearity check passes}
+  \caption{Prediction errors across all experiments}
+  \label{fig:prediction_errors}
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../io_local_tests/post_fix_errors.png}
-  \caption{After applying the linear model, as the expected memory usage
-    increases, prediction errors (in MiB) get progressively worse (i.e., we
-    expect to use more memory than we actually do).}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_array_size.png}
+    \caption{array size}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_string_length.png}
+    \caption{string length}
+    \label{fig:prediction_violin_b}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_num_nodes.png}
+    \caption{number of nodes}
+  \end{subfigure}
+  \caption{Violin plots of errors against the three independent variables}
+  \label{fig:prediction_violins}
+\end{figure}
+
+\paragraph{Results}
+
+We use the estimated memory usage parameters from local experiments to adjust
+the application so that it always uses a specified amount of memory. We use a
+smaller set of experiments to investigate the resulting application's accuracy.
+Namely, \texttt{memoryUsage} is set to $2^0, 2^1, 2^2, \dots,
+\SI[exponent-base = 2]{e10}{\mebi\byte}$, while both \texttt{outputSize} and
+\texttt{responseSize} are set to any combination of powers-of-two
+\si{\mebi\byte} that satisfies total memory usage requirements. With each set of
+parameter values, the median of three runs is recorded.
+
+While the errors have more variability, $82\%$ of the relative errors are still
+within $\pm10\%$ (see Figure~\ref{fig:posterior_densities}). In terms of
+relative errors, most of the problematic values are at \SI{64}{\mebi\byte}
+\texttt{memoryUsage} (see Figure~\ref{fig:posterior_errors}). Highest overall
+errors (both positive and negative) happen when \texttt{memoryUage} is at its
+highest, especially when \texttt{responseSize} is at its highest as well. This
+again alludes to the fact that a linear model is not perfect for this situation
+and the growth of memory usage experiences non-linear effects with higher
+values.
+
+Finally, the violin plots in Figure~\ref{fig:posterior_violins} show that
+(unsurprisingly) errors tend to increase with higher \texttt{memoryUsage}. Our
+linear predictions seem to perform well with small linked lists, but get
+significantly less accurate with higher values of \texttt{responseSize}. Lastly,
+there is a positive-to-negative trend in errors that is not captured by out
+model, achieved by increasing \texttt{outputSize}.
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_density_rel.png}
+    \caption{relative errors}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_density_errors.png}
+    \caption{errors (in \si{\mebi\byte})}
+  \end{subfigure}
+  \caption{Density plots of errors}
+  \label{fig:posterior_densities}
 \end{figure}
 
 \begin{figure}
   \centering
-   \begin{subfigure}{0.49\textwidth}
+  \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/prediction_errors.png}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_relative_errors.png}
+    \caption{relative errors}
   \end{subfigure}
-   \begin{subfigure}{0.49\textwidth}
+  \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable1.png}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_errors.png}
+    \caption{errors}
   \end{subfigure}
-   \begin{subfigure}{0.49\textwidth}
+  \caption{Errors in memory usage, comparing the program's measured memory usage
+    with the memory usage it was supposed to have}
+  \label{fig:posterior_errors}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable2.png}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_exp.png}
+    \caption{expected memory usage}
+    \label{fig:posterior_violin_memory}
   \end{subfigure}
-   \begin{subfigure}{0.49\textwidth}
+  \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/errors_per_variable.png}
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_output.png}
+    \caption{output size}
+    \label{fig:posterior_violin_output}
   \end{subfigure}
-  \caption{Prediction errors: overall and per-variable}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_response.png}
+    \caption{response size}
+    \label{fig:posterior_violin_response}
+  \end{subfigure}
+  \caption{Violin plots of errors across independent variables}
+  \label{fig:posterior_violins}
 \end{figure}
 
 \bibliographystyle{abbrv}

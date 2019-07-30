@@ -58,55 +58,55 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{Deployment}
-  \begin{adjustbox}{max totalsize={\textwidth}{0.88\textheight},center}
-    \begin{tikzpicture}
-      % components: first column
-      \umlbasiccomponent[x=-6, y=3, fill=cyan!20]{Prometheus}
-      \begin{umlcomponent}[fill=cyan!20]{Configuration Files}
-        \umlbasiccomponent[x=-6, y=-2, fill=red!20]{Global}
-        \umlbasiccomponent[x=-6, y=-4, fill=red!20]{Components}
-      \end{umlcomponent}
+% \begin{frame}{Deployment}
+%   \begin{adjustbox}{max totalsize={\textwidth}{0.88\textheight},center}
+%     \begin{tikzpicture}
+%       % components: first column
+%       \umlbasiccomponent[x=-6, y=3, fill=cyan!20]{Prometheus}
+%       \begin{umlcomponent}[fill=cyan!20]{Configuration Files}
+%         \umlbasiccomponent[x=-6, y=-2, fill=red!20]{Global}
+%         \umlbasiccomponent[x=-6, y=-4, fill=red!20]{Components}
+%       \end{umlcomponent}
 
-      % components: second column
-      \umlbasiccomponent[x=0, y=1]{Control Service}
-      \begin{umlcomponent}{Control Pod}
-        \umlbasiccomponent[x=0, y=-2, fill=red!20]{Control Server}
-        \umlbasiccomponent[x=0, y=-4, fill=red!20]{Benchmarker}
-      \end{umlcomponent}
-      \umlbasiccomponent[x=0, y=-7]{Control Persistent Volume Claim}
-      \umlbasiccomponent[x=0, y=-10]{Control Persistent Volume}
+%       % components: second column
+%       \umlbasiccomponent[x=0, y=1]{Control Service}
+%       \begin{umlcomponent}{Control Pod}
+%         \umlbasiccomponent[x=0, y=-2, fill=red!20]{Control Server}
+%         \umlbasiccomponent[x=0, y=-4, fill=red!20]{Benchmarker}
+%       \end{umlcomponent}
+%       \umlbasiccomponent[x=0, y=-7]{Control Persistent Volume Claim}
+%       \umlbasiccomponent[x=0, y=-10]{Control Persistent Volume}
 
-      % components: third column
-      \umlbasiccomponent[x=6, y=3]{JobManager Service}
-      \umlbasiccomponent[x=6, y=-1]{JobManager Pod}
-      \umlbasiccomponent[x=6, y=-4]{TaskManager Service}
-      \umlbasiccomponent[x=6, y=-8]{TaskManager Pod}
+%       % components: third column
+%       \umlbasiccomponent[x=6, y=3]{JobManager Service}
+%       \umlbasiccomponent[x=6, y=-1]{JobManager Pod}
+%       \umlbasiccomponent[x=6, y=-4]{TaskManager Service}
+%       \umlbasiccomponent[x=6, y=-8]{TaskManager Pod}
 
-      % connections in second column
-      \umlVHVassemblyconnector{Control Persistent Volume Claim}{Control Persistent Volume}
-      \umlVHVassemblyconnector{Control Pod}{Control Persistent Volume Claim}
-      \umlprovidedinterface[interface=998, with port, distance=2.5]{Control Server}
-      \umlrequiredinterface[interface=998, with port]{Benchmarker}
-      \umlHVassemblyconnector{Control Service}{Control Server-west-interface}
-      \umlHVassemblyconnector{Control Service}{Benchmarker-east-interface}
+%       % connections in second column
+%       \umlVHVassemblyconnector{Control Persistent Volume Claim}{Control Persistent Volume}
+%       \umlVHVassemblyconnector{Control Pod}{Control Persistent Volume Claim}
+%       \umlprovidedinterface[interface=998, with port, distance=2.5]{Control Server}
+%       \umlrequiredinterface[interface=998, with port]{Benchmarker}
+%       \umlHVassemblyconnector{Control Service}{Control Server-west-interface}
+%       \umlHVassemblyconnector{Control Service}{Benchmarker-east-interface}
 
-      % connections between first and second columns
-      \umlHVHassemblyconnector[interface={\space}, arm1=-2.3]{Benchmarker}{Global}
-      \umlVHVassemblyconnector[interface={\space}]{Control Server}{Global}
-      \umlVHVassemblyconnector[interface={\space}, arm1=-0.7]{Benchmarker}{Components}
+%       % connections between first and second columns
+%       \umlHVHassemblyconnector[interface={\space}, arm1=-2.3]{Benchmarker}{Global}
+%       \umlVHVassemblyconnector[interface={\space}]{Control Server}{Global}
+%       \umlVHVassemblyconnector[interface={\space}, arm1=-0.7]{Benchmarker}{Components}
 
-      % Prometheus connections
-      \umlHVHassemblyconnector[interface=HTTPS, arm1=-2, with port]{Control Server}{Prometheus}
-      \umlassemblyconnector[interface=9250, arm1=1, with port]{Prometheus}{JobManager Service}
-      \umlHVHassemblyconnector[interface=9250, arm1=8, with port]{Prometheus}{TaskManager Service}
+%       % Prometheus connections
+%       \umlHVHassemblyconnector[interface=HTTPS, arm1=-2, with port]{Control Server}{Prometheus}
+%       \umlassemblyconnector[interface=9250, arm1=1, with port]{Prometheus}{JobManager Service}
+%       \umlHVHassemblyconnector[interface=9250, arm1=8, with port]{Prometheus}{TaskManager Service}
 
-      % column 3 connections
-      \umlVHVassemblyconnector[interface={6123{,} 6124{,} 8081{,} 9250}, with port]{JobManager Pod}{JobManager Service}
-      \umlVHVassemblyconnector[interface={6121{,} 6122{,} 9250}, with port]{TaskManager Pod}{TaskManager Service}
-    \end{tikzpicture}
-  \end{adjustbox}
-\end{frame}
+%       % column 3 connections
+%       \umlVHVassemblyconnector[interface={6123{,} 6124{,} 8081{,} 9250}, with port]{JobManager Pod}{JobManager Service}
+%       \umlVHVassemblyconnector[interface={6121{,} 6122{,} 9250}, with port]{TaskManager Pod}{TaskManager Service}
+%     \end{tikzpicture}
+%   \end{adjustbox}
+% \end{frame}
 
 \begin{frame}{Execution}
   \begin{adjustbox}{max totalsize={\textwidth}{\textheight},center}
@@ -159,9 +159,9 @@
   \includegraphics[width=\textwidth]{../../plots/heap_512.png}
 \end{frame}
 
-\begin{frame}{Using Maximum Value as a Predictor}
-  \includegraphics[width=\textwidth]{../../plots/relative_median_errors.png}
-\end{frame}
+%\begin{frame}{Using Maximum Value as a Predictor}
+%  \includegraphics[width=\textwidth]{../../plots/relative_median_errors.png}
+%\end{frame}
 
 \begin{frame}{Future Work}
   \begin{itemize}
@@ -178,6 +178,11 @@
     \item and example applications
     \end{itemize}
   \end{itemize}
+  \pause
+  \vfill
+  \centering
+  \large
+  \emph{Thank You!}
 \end{frame}
 
 % TODO: mention:
