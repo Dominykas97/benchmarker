@@ -44,22 +44,14 @@ public class ControlServer {
 
     public static void main(String[] args) throws Exception {
         Config config = Config.getInstance();
-        PeriodicUser user = (PeriodicUser) config.user;
-        int numMessages = (int) Math.ceil(user.messagesPerSecond * user.experimentDuration);
 
-        // Send messages to the Flink app
         try (
                 ServerSocket server = new ServerSocket(config.controlPort);
                 Socket socket = server.accept();
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         ) {
-            for (int i = 0; i < numMessages; i++) {
-                System.out.println("Sending " + (i + 1) + "/" + numMessages + " message");
-                for (int j = 0; j < user.requestsPerMessage; j++)
-                    out.println(".");
-                if (i < numMessages - 1)
-                    TimeUnit.NANOSECONDS.sleep((long) (1e+9 / user.messagesPerSecond));
-            }
+            // Send messages to the Flink app
+            config.user.execute(out);
         }
 
         // Re-open the server and read the job's runtime
