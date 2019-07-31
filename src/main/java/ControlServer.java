@@ -51,7 +51,7 @@ public class ControlServer {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         ) {
             // Send messages to the Flink app
-            config.user.execute(out);
+            config.workload.execute(out);
         }
 
         // Re-open the server and read the job's runtime

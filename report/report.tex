@@ -641,7 +641,7 @@ time).
   \label{alg:io}
 \end{algorithm}
 
-\subsection{Calibration}
+\subsection{Is it using the right amount of memory?}
 
 Once again, we need to calibrate the problem to ensure that it uses the right
 amount of memory (and also to determine the value of \texttt{NODE\_SIZE}). This
@@ -831,6 +831,19 @@ model, achieved by increasing \texttt{outputSize}.
   \caption{Violin plots of errors across independent variables}
   \label{fig:posterior_violins}
 \end{figure}
+
+\subsection{Is it taking the right amount of time?}
+
+If Algorithm~\ref{alg:io} is working as intended, total running time of the I/O
+simulation process should be
+\[
+  \texttt{numRequests} \times \left( \texttt{databaseLatency} +
+  \frac{\texttt{responseSize}}{\texttt{bandwidth}} \right) +
+(\texttt{numRequests} - 1) \times \texttt{intervalBetweenRequests}.
+\]
+As the \texttt{sleep()} routine can be inaccurate for small arguments...
+
+\section{Generating Different Usage Patterns}
 
 \bibliographystyle{abbrv}
 \bibliography{report}

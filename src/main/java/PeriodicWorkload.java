@@ -1,7 +1,7 @@
 import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 
-public class PeriodicUser extends User {
+public class PeriodicWorkload extends Workload {
     public float messagesPerSecond;
     public int experimentDuration;
     public int requestsPerMessage;

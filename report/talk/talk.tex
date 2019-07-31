@@ -20,6 +20,26 @@
 
 \maketitle
 
+\begin{frame}{Introduction}
+  \begin{itemize}
+  \item What resources does my application need?
+  \item What if the workload increases?
+  \item What if I add extra features to my software?
+  \end{itemize}
+  \begin{block}{(Accomplished) Goals}
+    \begin{itemize}
+    \item To implement a system that can simulate a wide range of distributed
+      applications
+      \begin{itemize}
+      \item with configurable memory usage, running time, etc.
+      \end{itemize}
+    \item To record \& plot various performance metrics
+    \item To investigate the level of accuracy (in terms of performance
+      data) that can be achieved on a cloud setup
+    \end{itemize}
+  \end{block}
+\end{frame}
+
 \begin{frame}{Main Ingredients}
   \centering
   \includegraphics[height=0.89\textheight]{creation.jpg}
@@ -135,27 +155,39 @@
   \end{adjustbox}
 \end{frame}
 
-\begin{frame}{Calibration}
+\begin{frame}{Simple Linear Regression for Memory Usage Prediction}
   \includegraphics[width=\textwidth]{../../proof_of_concept/prediction1.png}
 \end{frame}
 
-\begin{frame}{Evaluation: CPU}
+\begin{frame}{Experiments on MiniShift}
+  \begin{block}{Research Questions}
+    \begin{itemize}
+    \item How does perfected local performance transfer to a cloud setup?
+    \item Can we use performance data in a time series format to recognise whether
+      an application is performing as expected?
+    \end{itemize}
+  \end{block}
+  \centering
+  \includegraphics[height=0.6\textheight]{experiment.png}
+\end{frame}
+
+\begin{frame}{CPU Usage}
   \includegraphics[width=\textwidth]{../../plots/cpu_experiment.png}
 \end{frame}
 
-\begin{frame}{Evaluation: Memory (\SI{64}{\mebi\byte})}
+\begin{frame}{Memory (\SI{64}{\mebi\byte})}
   \includegraphics[width=\textwidth]{../../plots/heap_64.png}
 \end{frame}
 
-\begin{frame}{Evaluation: Memory (\SI{128}{\mebi\byte})}
+\begin{frame}{Memory (\SI{128}{\mebi\byte})}
   \includegraphics[width=\textwidth]{../../plots/heap_128.png}
 \end{frame}
 
-\begin{frame}{Evaluation: Memory (\SI{256}{\mebi\byte})}
+\begin{frame}{Memory (\SI{256}{\mebi\byte})}
   \includegraphics[width=\textwidth]{../../plots/heap_256.png}
 \end{frame}
 
-\begin{frame}{Evaluation: Memory (\SI{512}{\mebi\byte})}
+\begin{frame}{Memory (\SI{512}{\mebi\byte})}
   \includegraphics[width=\textwidth]{../../plots/heap_512.png}
 \end{frame}
 
@@ -173,10 +205,10 @@
       resources?
     \end{itemize}
   \item Complex component topologies
-  \item More performance metrics (e.g. end-to-end latency)
-    \begin{itemize}
-    \item and example applications
-    \end{itemize}
+%  \item More performance metrics (e.g. end-to-end latency)
+%    \begin{itemize}
+%    \item and example applications
+%    \end{itemize}
   \end{itemize}
   \pause
   \vfill

@@ -10,12 +10,12 @@ public class Config {
     public int controlPort;
     public String prometheusHostname;
     public List<Metric> metrics;
-    public User user;
+    public Workload workload;
 
     static Config getInstance() throws Exception {
         final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         final SimpleModule module = new SimpleModule();
-        module.addDeserializer(User.class, new UserDeserializer());
+        module.addDeserializer(Workload.class, new WorkloadDeserializer());
         mapper.registerModule(module);
 
         return mapper.readValue(new File("config/global.yaml"), Config.class);
