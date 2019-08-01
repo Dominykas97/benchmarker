@@ -11,6 +11,7 @@
 \usetheme{Boadilla}
 \usecolortheme{seahorse}
 \beamertemplatenavigationsymbolsempty
+\definecolor{mygreen}{RGB}{27, 158, 119}
 
 \author{Paulius Dilkas}
 \title[Automated Benchmarking]{Automated Benchmarking of Container Applications}
@@ -26,16 +27,14 @@
   \item What if the workload increases?
   \item What if I add extra features to my software?
   \end{itemize}
-  \begin{block}{(Accomplished) Goals}
+  \begin{block}{In this talk...}
     \begin{itemize}
-    \item To implement a system that can simulate a wide range of distributed
-      applications
+    \item A simulator for a wide range of distributed applications
       \begin{itemize}
       \item with configurable memory usage, running time, etc.
       \end{itemize}
-    \item To record \& plot various performance metrics
-    \item To investigate the level of accuracy (in terms of performance
-      data) that can be achieved on a cloud setup
+    \item Recording \& plotting various performance metrics
+    \item Ensuring accurate simulations locally and on a cloud
     \end{itemize}
   \end{block}
 \end{frame}
@@ -51,7 +50,7 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{The General Idea}
+\begin{frame}{Simulation}
   \centering
   \begin{tikzpicture}[component/.style={draw, text width=3.7cm, align=center}]
     \node[component] at (-1, 0) (server) {
@@ -128,7 +127,7 @@
 %   \end{adjustbox}
 % \end{frame}
 
-\begin{frame}{Execution}
+\begin{frame}{Communication}
   \begin{adjustbox}{max totalsize={\textwidth}{\textheight},center}
     \begin{tikzpicture}
       \begin{umlseqdiag}
@@ -197,8 +196,8 @@
 
 \begin{frame}{Future Work}
   \begin{itemize}
-  \item Input/output simulation
-  \item Complex usage patterns
+  \item Input/output simulation \textcolor{mygreen}{$\sim\checkmark$}
+  \item Complex usage patterns \textcolor{mygreen}{$\checkmark$}
   \item Automatically answering the question:
     \begin{itemize}
     \item does this experiment show that the application could benefit from more

@@ -2,8 +2,8 @@ import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 
 public class PeriodicWorkload extends Workload {
-    public float messagesPerSecond;
     public int experimentDuration;
+    public float messagesPerSecond;
     public int requestsPerMessage;
 
     public void execute(PrintWriter out) throws Exception {

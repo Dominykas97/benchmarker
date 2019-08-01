@@ -12,7 +12,7 @@ metrics:
     filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load
 workload:
-  function: 10 + x + 10 * Math.sin(-4 * x + 4) + 4 * Math.exp(-Math.pow(x - 10, 2) / 2)
+  function: 10 + x + 5 * Math.sin(-4 * x + 4) + 10 * Math.exp(-Math.pow(x - 10, 2) / 2)
   binWidth: 1
   initialX: 0
   finalX: 15

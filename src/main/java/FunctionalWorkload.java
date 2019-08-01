@@ -10,11 +10,6 @@ public class FunctionalWorkload extends Workload {
     public double initialX;
     public double finalX;
 
-    // Assumptions:
-    // 1. binWidth is measured in seconds.
-    // 2. The function plots frequency over time (seconds, again).
-    // 3. binWidth is small enough so that we're not sending hundreds of messages at once,
-    // 4. but also big enough so that we're sending something (preferably more than 1 message).
     public void execute(PrintWriter out) throws Exception {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
         long timeToSleep = (long) (1e9 * binWidth);

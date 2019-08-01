@@ -13,12 +13,47 @@
 \usepackage{tikz-uml}
 \usepackage[binary-units = true]{siunitx}
 \usepackage[ruled, vlined]{algorithm2e}
+\usepackage{color}
 
 \DeclareSIUnit{\million}{\text{million}}
 \usetikzlibrary{arrows.meta}
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
+
+\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+\lstdefinelanguage{JavaScript}{
+  keywords={break, case, catch, continue, debugger, default, delete, do, else, false, finally, for, function, if, in, instanceof, new, null, return, switch, this, throw, true, try, typeof, var, void, while, with},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  commentstyle=\color{purple}\ttfamily,
+  stringstyle=\color{red}\ttfamily,
+  sensitive=true
+}
+
+\lstset{
+   language=JavaScript,
+   %backgroundcolor=\color{lightgray},
+   extendedchars=true,
+   basicstyle=\footnotesize\ttfamily,
+   showstringspaces=false,
+   showspaces=false,
+   %numbers=left,
+   numberstyle=\footnotesize,
+   numbersep=9pt,
+   tabsize=2,
+   breaklines=true,
+   showtabs=false,
+   captionpos=b
+}
 
 \begin{document}
 \maketitle
@@ -591,16 +626,17 @@ In order to simulate input/output (I/O) interactions similar to accessing a
 database or reading a file, we introduce a number of new component-specific
 parameters:
 \begin{description}
-\item[$\texttt{databaseOnStartup} = \text{true}$] means that I/O will be
-  simulated only once, during the initialisation stage. Otherwise it will be
-  simulated with every call to \texttt{map()}.
+\item[$\texttt{ioMode} \in \{ \text{startup}, \text{regular}, \text{off} \}$]
+  determines when to simulate I/O: during the initialisation stage, with every
+  call to \texttt{map()}, or never.
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
 \item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
 \item[\texttt{databaseLatency}] is the amount of time spent between a request
   and receiving the first byte of the response (in \si{\milli\second}).
 \item[\texttt{bandwidth}] is the bandwidth for transferring the response (as the
-  request is assumed to be small) (in \si[per-mode=symbol]{\byte\per\second}).
+  request is assumed to be small) (in
+  \si[per-mode=symbol]{\mebi\bit\per\second}).
 \item[\texttt{intervalBetweenRequests}] is the amount of time between receiving
   a response and sending another request (in \si{\milli\second}).
 \end{description}
@@ -696,12 +732,12 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_density_relative.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_density_relative.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_density_errors.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_density_errors.png}
     \caption{errors (in \si{\mebi\byte})}
   \end{subfigure}
   \caption{Density plots of errors}
@@ -712,12 +748,12 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{\textwidth}
     \centering
-    \includegraphics[width=0.5\textwidth]{../io_local_tests/plots/prediction_relative1.png}\includegraphics[width=0.5\textwidth]{../io_local_tests/plots/prediction_relative2.png}
+    \includegraphics[width=0.5\textwidth]{../io_memory_tests/plots/prediction_relative1.png}\includegraphics[width=0.5\textwidth]{../io_memory_tests/plots/prediction_relative2.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_errors.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_errors.png}
     \caption{errors}
     \label{fig:prediction_error_b}
   \end{subfigure}
@@ -729,18 +765,18 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_array_size.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_array_size.png}
     \caption{array size}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_string_length.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_string_length.png}
     \caption{string length}
     \label{fig:prediction_violin_b}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/prediction_violin_num_nodes.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_num_nodes.png}
     \caption{number of nodes}
   \end{subfigure}
   \caption{Violin plots of errors against the three independent variables}
@@ -779,12 +815,12 @@ model, achieved by increasing \texttt{outputSize}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_density_rel.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_density_rel.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_density_errors.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_density_errors.png}
     \caption{errors (in \si{\mebi\byte})}
   \end{subfigure}
   \caption{Density plots of errors}
@@ -795,12 +831,12 @@ model, achieved by increasing \texttt{outputSize}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_relative_errors.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_relative_errors.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_errors.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_errors.png}
     \caption{errors}
   \end{subfigure}
   \caption{Errors in memory usage, comparing the program's measured memory usage
@@ -812,19 +848,19 @@ model, achieved by increasing \texttt{outputSize}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_exp.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_exp.png}
     \caption{expected memory usage}
     \label{fig:posterior_violin_memory}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_output.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_output.png}
     \caption{output size}
     \label{fig:posterior_violin_output}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_local_tests/plots/posterior_error_response.png}
+    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_response.png}
     \caption{response size}
     \label{fig:posterior_violin_response}
   \end{subfigure}
@@ -841,9 +877,56 @@ simulation process should be
   \frac{\texttt{responseSize}}{\texttt{bandwidth}} \right) +
 (\texttt{numRequests} - 1) \times \texttt{intervalBetweenRequests}.
 \]
-As the \texttt{sleep()} routine can be inaccurate for small arguments...
+As the \texttt{sleep()} routine can be inaccurate for small arguments, we
+implemented a standalone version of this algorithm and recorded its running time
+with the following values of parameters:
+\begin{align*}
+  \texttt{numRequests} &= 1, 2, 4, 8; \\
+  \texttt{responseSize} &= 1, 10, \SI{100}{\mebi\byte}; \\
+  \texttt{databaseLatency} &= 1, 10, 100, \SI{1000}{\milli\second}; \\
+  \texttt{bandwidth} &= 1, 10, 100, \SI[per-mode=symbol]{1000}{\mebi\bit\per\second}; \\
+  \texttt{intervalBetweenRequests} &= 1, 10, 100, \SI{1000}{\milli\second}.
+\end{align*}
 
 \section{Generating Different Usage Patterns}
+
+% TODO: motivation
+
+While a periodic workload is defined by the three parameters
+\texttt{experimentDuration}, \texttt{messagesPerSecond},
+\texttt{requestsPerMessage}, we define a `functional' workload as a 4-tuple
+consisting of a \texttt{function} string, \texttt{binWidth}, \texttt{initialX},
+\texttt{finalX}.
+
+The implementation assumes that $x$ (along with \texttt{binWidth}) is measured
+in seconds, and $f(x)$ is the frequency of messages measured in \si{\hertz}. It
+is also important to set up the \texttt{binWidth} parameter so that the number
+of requests we send at a time is higher than zero, but also not too
+high---otherwise the simulation becomes inaccurate.
+
+\begin{equation} \label{eq:example_function}
+  f(x) = 10 + x + 5\sin(-4x + 4) + 10\exp \left( -\frac{(x - 10)^2}{2} \right)
+\end{equation}
+
+\begin{lstlisting}[language=JavaScript]
+10 + x + 5 * Math.sin(-4 * x + 4) + 10 * Math.exp(-Math.pow(x - 10, 2) / 2)
+\end{lstlisting}
+
+% TODO: Replace all x's that are not part of a longer word with the numeric x. This is
+% needed so that the 'x' in 'exp' is not replaced.
+% The number of requests is then f(x_something) * binWidth. Then wait binWidth
+% time before taking the next value.
+% Flexible approach that allows us to model steady growth/decay, periodic
+% patterns, and any number of spikes
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../plots/functional_workload.png}
+  \caption{Function~\eqref{eq:example_function} plotted between $x=0$ and
+    $x=15$ with intervals of \texttt{binWidth} marked by dashed vertical lines
+    and the function's values at their centres marked by yellow dots}
+  \label{fig:functional_workload}
+\end{figure}
 
 \bibliographystyle{abbrv}
 \bibliography{report}
