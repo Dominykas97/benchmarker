@@ -6,7 +6,7 @@ attach(data)
 NODE_SIZE <- 61.94
 MB <- bitwShiftL(1, 20)
 expected_time <- num_requests * (database_latency / 1000 + response_size * 8 / bandwidth) +
-  (num_requests - 1) * interval_between_requests / 1000
+  (num_requests - 1) * interval_between_requests / 1000 # seconds
 bandwidth_latency <- NODE_SIZE / (bandwidth / 8 * MB) # seconds
 
 errors <- total_time - expected_time
@@ -29,6 +29,11 @@ length(small_errors) / length(errors)
 plot(interval_between_requests, errors, log = "x")
 summary(expected_time)
 plot(expected_time, total_time, log = "xy")
+abline(0, 1, untf = TRUE)
 plot(bandwidth_latency, errors, log = "x")
 
 data[errors < -7000, ]
+
+# Let's try to fit a linear model?
+regression <- lm(total_time ~ num_requests * response_size * database_latency * bandwidth * interval_between_requests)
+summary(regression)

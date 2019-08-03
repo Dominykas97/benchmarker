@@ -659,23 +659,45 @@ time).
   \SetKwData{nodeSize}{NODE\_SIZE}
   \SetKwData{bandwidth}{bandwidth}
   \SetKwData{intervalBetweenRequests}{intervalBetweenRequests}
+  \SetKwFunction{mySleep}{mySleep}
   \SetKwFunction{sleep}{sleep}
   \SetKwFunction{LinkedList}{LinkedList}
   \SetKw{new}{new}
+  \SetKwProg{Function}{Function}{}{end}
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
-    \sleep{\databaseLatency}\;
+    \mySleep{\databaseLatency}\;
     $L \leftarrow$ \new \LinkedList of 64-bit integers\;
-    \For{$j \leftarrow 1$ \KwTo $\frac{\responseSize}{\nodeSize}$}{
+    \For{$j \leftarrow 1$ \KwTo
+      $\left[\frac{\responseSize}{\nodeSize}\right]$}{
       add a random integer to $L$\;
-      \sleep{$\frac{\nodeSize}{\bandwidth}$}\;
+      \mySleep{$\frac{\nodeSize}{\bandwidth}$}\;
+    }
+    \eIf{$\frac{\nodeSize}{\bandwidth} < \SI{15}{\milli\second}$}{
+      \mySleep{$\frac{\responseSize}{\bandwidth}$}\;
+    }{
+      \mySleep{$\left\{ \frac{\responseSize}{\nodeSize} \right\} \times \frac{\nodeSize}{\bandwidth}$}\;
     }
     \If{$i < \numRequests$}{
-      \sleep{\intervalBetweenRequests}\;
+      \mySleep{\intervalBetweenRequests}\;
+    }
+  }
+  \Function{\mySleep{$t$}}{
+    \If{$t \ge \SI{15}{\milli\second}$}{
+      \sleep{$t$}\;
     }
   }
   \caption{Simulation of a slow network data transfer}
   \label{alg:io}
-\end{algorithm}
+\end{algorithm} % TODO: explain brackets, explain.
+% responseSize/node_size is the number of nodes we want to have in the linked
+% list. If we took no sleep breaks during the for loop, then we need to sleep at
+% the end of it (since adding a random integer takes a negligible amount of
+% time). Otherwise, if the linked list was supposed to have, say, 4.5 nodes, we
+% end up with less memory usage, but we can still recover the fractional amount
+% of running time that we're losing out on. We ignore sleeping instructions for
+% less than 15 ms because they cannot be accurate due to properties of the
+% underlying operating system [ref something]. Explain how we got
+% responseSize/bandwidth (multiplying two things).
 
 \subsection{Is it using the right amount of memory?}
 
