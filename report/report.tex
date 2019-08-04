@@ -14,12 +14,23 @@
 \usepackage[binary-units = true]{siunitx}
 \usepackage[ruled, vlined]{algorithm2e}
 \usepackage{color}
-
-\DeclareSIUnit{\million}{\text{million}}
-\usetikzlibrary{arrows.meta}
+\usepackage{xcolor}
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
+
+\DeclareSIUnit{\million}{\text{million}}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{fit,calc}
+%define a marking command
+\newcommand*{\tikzmk}[1]{\tikz[remember picture,overlay,] \node (#1)
+  {};\ignorespaces}
+%define a boxing command, argument = colour of box
+\newcommand{\boxit}[1]{\tikz[remember
+  picture,overlay]{\node[yshift=3pt,fill=#1,opacity=.25,fit={(A)($(B)+(.39\linewidth,.8\baselineskip)$)}]
+    {};}\ignorespaces}
+
+\def\HiLi{\leavevmode\rlap{\hbox to \hsize{\color{cyan!25}\leaders\hrule height .8\baselineskip depth .5ex\hfill}}}
 
 \definecolor{lightgray}{rgb}{.9,.9,.9}
 \definecolor{darkgray}{rgb}{.4,.4,.4}
@@ -662,23 +673,23 @@ time).
   \SetKwFunction{mySleep}{mySleep}
   \SetKwFunction{sleep}{sleep}
   \SetKwFunction{LinkedList}{LinkedList}
+  \SetKwFunction{time}{time}
   \SetKw{new}{new}
   \SetKwProg{Function}{Function}{}{end}
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
-    \mySleep{\databaseLatency}\;
-    $L \leftarrow$ \new \LinkedList of 64-bit integers\;
+    \mySleep{\textcolor{red}{\databaseLatency}}\;
+    $t_0 \leftarrow \time{}$\;
+    \tikzmk{A}$L \leftarrow$ \new \LinkedList of 64-bit integers\;
     \For{$j \leftarrow 1$ \KwTo
-      $\left[\frac{\responseSize}{\nodeSize}\right]$}{
+      $\left\lfloor\frac{\responseSize}{\nodeSize}\right\rfloor$}{
       add a random integer to $L$\;
-      \mySleep{$\frac{\nodeSize}{\bandwidth}$}\;
-    }
-    \eIf{$\frac{\nodeSize}{\bandwidth} < \SI{15}{\milli\second}$}{
-      \mySleep{$\frac{\responseSize}{\bandwidth}$}\;
-    }{
-      \mySleep{$\left\{ \frac{\responseSize}{\nodeSize} \right\} \times \frac{\nodeSize}{\bandwidth}$}\;
-    }
+      \mySleep{\textcolor{red}{$\frac{\nodeSize}{\bandwidth}$}}\;
+    }\tikzmk{B}
+    \boxit{yellow}
+    $t_1 \leftarrow \time{}$\;
+    \mySleep{\textcolor{red}{$\frac{\responseSize}{\bandwidth} - t_1 + t_0$}}\;
     \If{$i < \numRequests$}{
-      \mySleep{\intervalBetweenRequests}\;
+      \mySleep{\textcolor{red}{\intervalBetweenRequests}}\;
     }
   }
   \Function{\mySleep{$t$}}{
@@ -688,7 +699,7 @@ time).
   }
   \caption{Simulation of a slow network data transfer}
   \label{alg:io}
-\end{algorithm} % TODO: explain brackets, explain.
+\end{algorithm} % TODO: explain brackets, explain in general.
 % responseSize/node_size is the number of nodes we want to have in the linked
 % list. If we took no sleep breaks during the for loop, then we need to sleep at
 % the end of it (since adding a random integer takes a negligible amount of
@@ -899,9 +910,12 @@ simulation process should be
   \frac{\texttt{responseSize}}{\texttt{bandwidth}} \right) +
 (\texttt{numRequests} - 1) \times \texttt{intervalBetweenRequests}.
 \]
-As the \texttt{sleep()} routine can be inaccurate for small arguments, we
-implemented a standalone version of this algorithm and recorded its running time
-with the following values of parameters:
+
+As the \texttt{sleep()} routine can be inaccurate for small arguments, we test
+a standalone implementation of the algorithm by recording its running from
+within the program itself. We explore all combinations of the following values:
+
+% TODO: update this
 \begin{align*}
   \texttt{numRequests} &= 1, 2, 4, 8; \\
   \texttt{responseSize} &= 1, 10, \SI{100}{\mebi\byte}; \\
