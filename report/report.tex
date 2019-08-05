@@ -12,7 +12,7 @@
 \usepackage{tikz}
 \usepackage{tikz-uml}
 \usepackage[binary-units = true]{siunitx}
-\usepackage[ruled, vlined]{algorithm2e}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{color}
 \usepackage{xcolor}
 
@@ -27,7 +27,13 @@
   {};\ignorespaces}
 %define a boxing command, argument = colour of box
 \newcommand{\boxit}[1]{\tikz[remember
-  picture,overlay]{\node[yshift=3pt,fill=#1,opacity=.25,fit={(A)($(B)+(.39\linewidth,.8\baselineskip)$)}]
+  picture,overlay]{\node[yshift=3pt,fill=#1,opacity=.25,fit={(A)($(B)+(.51\linewidth,.8\baselineskip)$)}]
+    {};}\ignorespaces}
+\newcommand{\boxittwo}[1]{\tikz[remember
+  picture,overlay]{\node[yshift=3pt,xshift=-1pt,fill=#1,opacity=.25,fit={(A)($(B)+(.426\linewidth,-.5\baselineskip)$)}]
+    {};}\ignorespaces}
+\newcommand{\boxitthree}[1]{\tikz[remember
+  picture,overlay]{\node[yshift=3pt,xshift=4pt,fill=#1,opacity=.25,fit={(A)($(B)+(.537\linewidth,.8\baselineskip)$)}]
     {};}\ignorespaces}
 
 \def\HiLi{\leavevmode\rlap{\hbox to \hsize{\color{cyan!25}\leaders\hrule height .8\baselineskip depth .5ex\hfill}}}
@@ -651,17 +657,44 @@ parameters:
 \item[\texttt{intervalBetweenRequests}] is the amount of time between receiving
   a response and sending another request (in \si{\milli\second}).
 \end{description}
+
 We can then use these variables to simulate an I/O dialogue as described in
-Algorithm~\ref{alg:io} (with unit conversion and rounding operations skipped for
-simplicity). We use a linked list $L$ to gradually construct an object of size
-\texttt{responseSize}, simulating a big file slowly being uploaded to memory.
-Setting the size of a single linked list node as \texttt{NODE\_SIZE} allows us
-to calculate that we need $\frac{\texttt{responseSize}}{\texttt{NODE\_SIZE}}$
-nodes in order to simulate a file transfer of size \texttt{responseSize}.
-Similarly, in order to achieve the right \texttt{bandwidth}, we need each node
-to be constructed in $\frac{\texttt{NODE\_SIZE}}{\texttt{bandwidth}}$ time (we
-are assuming that adding a random integer to a list takes a negligible amount of
-time).
+Algorithm~\ref{alg:io} (with unit conversion skipped for
+simplicity). We use the variable $s$ to track our `sleep debt', i.e., the amount
+of time the algorithm is supposed to sleep for at the end of each iteration on
+line~\ref{alg:main_sleep}. The function \texttt{mySleep} was added in order to
+ignore sleeping instructions for amounts of time smaller than
+\SI{15}{\milli\second} because most commonly-used operating systems have no
+support for this level of real-time behaviour control. We start by sleeping for
+\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{databaseLatency}}{\milli\second}
+to simulate the first delay between sending the request and receiving the data;
+other \texttt{databaseLatency} delays are incorporated into $s$ on
+line~\ref{alg:s_plus_latency}. For each request, we gradually build up a linked
+list $L$ until it uses about
+\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{responseSize}}{\kibi\byte}
+memory. Setting the size of a single linked list node as \texttt{NODE\_SIZE}
+allows us to calculate that we need
+$\frac{\texttt{responseSize}}{\texttt{NODE\_SIZE}}$ nodes in order to use the
+desired amount of memory (we round down in the algorithm). Similarly, in order
+to achieve the right \texttt{bandwidth}, we need each node to be constructed in
+$\frac{\texttt{NODE\_SIZE}}{\texttt{bandwidth}}$ time.
+
+Based on separate experimental evidence, adding a single random integer to a
+linked list typically takes about \SI{98}{\nano\second}. While this amount of
+time is negligible for small lists, it can add up to significant delays when
+considering linked lists with millions of nodes. To take this into account, we
+measure the amount of time the yellow block of code takes to execute and
+subtract it from $s$ on line~\ref{alg:subtract_time}. The yellow block is
+supposed to take $\frac{\texttt{responseSize}}{\texttt{bandwidth}}$ time, so we
+add the difference between the expectation and the reality to the amount of time
+the algorithm sleeps at the end of each iteration. If this is not the final
+iteration of the outer for loop, we also add \texttt{intervalbBetweenRequests}
+and \texttt{databaseLatency} as well. The function of $s$ is to collect multiple
+reasons to sleep into a single call to \texttt{mySleep} as well as to take into
+account the amount of time it takes to build the linked list. If $s$ is negative
+or too small, we let it influence the simulation of the next request so that the
+total amount of time is as accurate as possible. Otherwise, we sleep for the
+desired amount of time and reset $s$ back to zero.
 
 \begin{algorithm}
   \SetKwData{numRequests}{numRequests}
@@ -676,8 +709,10 @@ time).
   \SetKwFunction{time}{time}
   \SetKw{new}{new}
   \SetKwProg{Function}{Function}{}{end}
+  \tikzmk{A}$s \leftarrow 0$\;\tikzmk{B}
+  \boxitthree{cyan}
+  \mySleep{\textcolor{red}{\databaseLatency}}\;
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
-    \mySleep{\textcolor{red}{\databaseLatency}}\;
     $t_0 \leftarrow \time{}$\;
     \tikzmk{A}$L \leftarrow$ \new \LinkedList of 64-bit integers\;
     \For{$j \leftarrow 1$ \KwTo
@@ -687,9 +722,15 @@ time).
     }\tikzmk{B}
     \boxit{yellow}
     $t_1 \leftarrow \time{}$\;
-    \mySleep{\textcolor{red}{$\frac{\responseSize}{\bandwidth} - t_1 + t_0$}}\;
+    \tikzmk{A}$s \leftarrow s + \frac{\responseSize}{\bandwidth} - t_1 +
+    t_0$\; \label{alg:subtract_time}
     \If{$i < \numRequests$}{
-      \mySleep{\textcolor{red}{\intervalBetweenRequests}}\;
+      $s \leftarrow s + \intervalBetweenRequests +
+      \databaseLatency$\; \label{alg:s_plus_latency}
+    }
+    \mySleep{\textcolor{red}{$s$}}\; \label{alg:main_sleep}
+    \If{$s \ge \SI{15}{\milli\second}$}{
+      $s \leftarrow 0$\tikzmk{B}\boxittwo{cyan}\;
     }
   }
   \Function{\mySleep{$t$}}{
@@ -697,31 +738,21 @@ time).
       \sleep{$t$}\;
     }
   }
-  \caption{Simulation of a slow network data transfer}
+  \caption{Simulation of a slow data transfer}
   \label{alg:io}
-\end{algorithm} % TODO: explain brackets, explain in general.
-% responseSize/node_size is the number of nodes we want to have in the linked
-% list. If we took no sleep breaks during the for loop, then we need to sleep at
-% the end of it (since adding a random integer takes a negligible amount of
-% time). Otherwise, if the linked list was supposed to have, say, 4.5 nodes, we
-% end up with less memory usage, but we can still recover the fractional amount
-% of running time that we're losing out on. We ignore sleeping instructions for
-% less than 15 ms because they cannot be accurate due to properties of the
-% underlying operating system [ref something]. Explain how we got
-% responseSize/bandwidth (multiplying two things).
+\end{algorithm}
 
 \subsection{Is it using the right amount of memory?}
 
-Once again, we need to calibrate the problem to ensure that it uses the right
-amount of memory (and also to determine the value of \texttt{NODE\_SIZE}). This
-time, we perform a much larger set of experiments, where the independent
-variables are assigned the following values:
+Once again, we need to ensure that our program uses the right amount of
+memory (and to determine the value of \texttt{NODE\_SIZE}). This
+time, we perform a much larger set of experiments where we measure memory usage
+under a range of array, string, and linked list sizes:
 \begin{align*}
   \text{array size} &= 1, 3, 5, 7, 9, 10, 30, 50, 70, 90, 100, \dots, \num{8e8}, \num{9e8}, \\
   \text{string length} &= 1, 3, 5, 7, 9, 10, \dots, \num{9e6} \text{ (also ensuring that $\text{string length} \le \text{array size}$)}, \\
   \text{number of nodes} &= 1, 3, 5, 7, 9, 10, \dots, \num{9e6}.
 \end{align*}
-
 We also employ weighted simple linear regression in order to minimise squared
 relative error. This way, the model prioritises minimising error on smaller
 values, where the measured values are likely to be more accurate. More
@@ -758,8 +789,6 @@ shift towards primarily positive errors, and some significant negative outliers.
 The same story applies to the number of nodes as well, except there is a more
 significant drop in mean error per constant number of nodes, before the errors
 become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
-
-% TODO: edit this section.
 
 \begin{figure}
   \centering
@@ -816,7 +845,7 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \label{fig:prediction_violins}
 \end{figure}
 
-\paragraph{Results}
+\paragraph{Putting the estimates back into action}
 
 We use the estimated memory usage parameters from local experiments to adjust
 the application so that it always uses a specified amount of memory. We use a
@@ -828,21 +857,21 @@ Namely, \texttt{memoryUsage} is set to $2^0, 2^1, 2^2, \dots,
 parameter values, the median of three runs is recorded.
 
 While the errors have more variability, $82\%$ of the relative errors are still
-within $\pm10\%$ (see Figure~\ref{fig:posterior_densities}). In terms of
-relative errors, most of the problematic values are at \SI{64}{\mebi\byte}
-\texttt{memoryUsage} (see Figure~\ref{fig:posterior_errors}). Highest overall
-errors (both positive and negative) happen when \texttt{memoryUage} is at its
-highest, especially when \texttt{responseSize} is at its highest as well. This
-again alludes to the fact that a linear model is not perfect for this situation
+within $\pm10\%$ (see Figure~\ref{fig:posterior_densities}). Unsurprisingly,
+highest relative errors occur with low (but not the lowest) expected memory
+usage (see Figure~\ref{fig:posterior_errors}). Highest overall errors (both
+positive and negative) happen when \texttt{memoryUage} is at its highest,
+especially when \texttt{responseSize} is at its highest as well. This again
+alludes to the fact that a linear model is not a perfect fit for this situation
 and the growth of memory usage experiences non-linear effects with higher
 values.
 
-Finally, the violin plots in Figure~\ref{fig:posterior_violins} show that
-(unsurprisingly) errors tend to increase with higher \texttt{memoryUsage}. Our
-linear predictions seem to perform well with small linked lists, but get
-significantly less accurate with higher values of \texttt{responseSize}. Lastly,
-there is a positive-to-negative trend in errors that is not captured by out
-model, achieved by increasing \texttt{outputSize}.
+Finally, the violin plots in Figure~\ref{fig:posterior_violins} show that errors
+tend to increase with higher \texttt{memoryUsage}. Our linear predictions seem
+to perform well with small linked lists, but get significantly less accurate
+with higher values of \texttt{responseSize}. Lastly, there is a
+positive-to-negative trend in errors with respect to increasing
+\texttt{outputSize} that is not captured by our model.
 
 \begin{figure}
   \centering
@@ -912,48 +941,81 @@ simulation process should be
 \]
 
 As the \texttt{sleep()} routine can be inaccurate for small arguments, we test
-a standalone implementation of the algorithm by recording its running from
-within the program itself. We explore all combinations of the following values:
-
-% TODO: update this
+a standalone implementation of the algorithm by recording its running time from
+within the program itself. We explore all combinations of the following
+values\footnote{Combinations of parameters resulting in high (above
+  \SI{1}{\minute}) expected running time were discarded in order to make the
+  experimental process feasibly efficient.}:
 \begin{align*}
   \texttt{numRequests} &= 1, 2, 4, 8; \\
-  \texttt{responseSize} &= 1, 10, \SI{100}{\mebi\byte}; \\
-  \texttt{databaseLatency} &= 1, 10, 100, \SI{1000}{\milli\second}; \\
-  \texttt{bandwidth} &= 1, 10, 100, \SI[per-mode=symbol]{1000}{\mebi\bit\per\second}; \\
-  \texttt{intervalBetweenRequests} &= 1, 10, 100, \SI{1000}{\milli\second}.
+  \texttt{responseSize} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI{1000}{\mebi\byte}; \\
+  \texttt{databaseLatency} &= 0, 100, \SI{1000}{\milli\second}; \\
+  \texttt{bandwidth} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI[per-mode=symbol]{1000}{\mebi\bit\per\second}; \\
+  \texttt{intervalBetweenRequests} &= 0, 100, \SI{1000}{\milli\second}.
 \end{align*}
 
-\section{Generating Different Usage Patterns}
+Errors above \SI{1}{\second} only occurred with $\texttt{responseSize} =
+\texttt{bandwidth} = 1000$, i.e., when constructing a big linked list (with
+$\sim \SI{17}{\million}$ nodes) with minimal \texttt{sleep()} breaks during the
+construction. In this case, the linked list construction itself takes more
+time than the entire process is supposed to take, with errors ranging from
+\SI{0.8}{\second} to \SI{9.7}{\second}. All other errors were within
+\SI{0.5}{\second} and most of them even within \SI{0.002}{\second}. As
+simulating slow memory buildup becomes less relevant when considering transfer
+speeds of around \SI[per-mode=symbol]{1}{\gibi\bit\per\second} or more, we
+conclude that the algorithm is sufficiently accurate.
 
-% TODO: motivation
+\section{Generating Various Usage Patterns}
 
-While a periodic workload is defined by the three parameters
-\texttt{experimentDuration}, \texttt{messagesPerSecond},
-\texttt{requestsPerMessage}, we define a `functional' workload as a 4-tuple
-consisting of a \texttt{function} string, \texttt{binWidth}, \texttt{initialX},
-\texttt{finalX}.
+% TODO: writing
+
+Hitherto the simulated user of the application was restricted to sending one or
+more messages at regular intervals. However, real usage patterns are often more
+complicated than that. For instance, a website might have more users during the
+day than at night, it might be slowly becoming more popular, and it might
+experience a spike in the number of users during an important event. In this
+section we present an approach that can simulate usage (or workload) patterns
+represented by any computable function.
+
+Recall that a periodic workload is defined by the three parameters
+\texttt{experimentDuration}, \texttt{messagesPerSecond}, and
+\texttt{requestsPerMessage}. We define a `functional' workload as a 4-tuple
+consisting of a \texttt{function} string and three floating-point numbers:
+\texttt{binWidth}, \texttt{initialX}, and \texttt{finalX}. The \texttt{function}
+variable contains a function of a single variable $x$ expressed in JavaScript
+syntax. For example, in order to represent
+\begin{equation} \label{eq:example_function}
+  f(x) = 10 + x + 5\sin(-4x + 4) + 10\exp \left( -\frac{(x - 10)^2}{2} \right),
+\end{equation}
+we would construct the following \texttt{function} string:
+\begin{lstlisting}[language=JavaScript]
+10 + x + 5 * Math.sin(-4 * x + 4) + 10 * Math.exp(-Math.pow(x - 10, 2) / 2).
+\end{lstlisting}
+Variables \texttt{initialX} and \texttt{finalX} define the interval of $x$
+values we want to simulate. Finally, \texttt{binWidth} is the discretisation
+parameter. In order to simulate the behaviour of a continuous function, we need
+to sample its values at different values of $x$, and \texttt{binWidth} defines
+the distance between different samples (see
+Figure~\ref{fig:functional_workload}).
+
+The \texttt{function} defines the workload frequency, while $x$ is the time
+variable. The number of messages we are supposed to send in an interval of size
+\texttt{binWidth} is then \texttt{binWidth} multiplied by the \texttt{function}
+evaluated at some point within the interval (in this case we choose the middle
+of the interval). We evaluate the \texttt{function} by replacing all occurrences
+of $x$ with the value of $x$ that corresponds to the interval of
+interest\footnote{We only replace occurrences of $x$ that are not part of a
+  longer word. This is needed so that the \texttt{x} in \texttt{exp} is not
+  replaced.} and sending the resulting string to a JavaScript evaluation engine
+(since Java itself has no evaluation function of its own). We then send the
+computed number of messages and wait \texttt{binWidth} time before evaluating
+the \texttt{function} at the next interval.
 
 The implementation assumes that $x$ (along with \texttt{binWidth}) is measured
-in seconds, and $f(x)$ is the frequency of messages measured in \si{\hertz}. It
-is also important to set up the \texttt{binWidth} parameter so that the number
-of requests we send at a time is higher than zero, but also not too
+in seconds, and the \texttt{function} is measured in \si{\hertz}. It is also
+important to set up the \texttt{binWidth} parameter so that the number of
+requests we send at a time is higher than zero, but also not too
 high---otherwise the simulation becomes inaccurate.
-
-\begin{equation} \label{eq:example_function}
-  f(x) = 10 + x + 5\sin(-4x + 4) + 10\exp \left( -\frac{(x - 10)^2}{2} \right)
-\end{equation}
-
-\begin{lstlisting}[language=JavaScript]
-10 + x + 5 * Math.sin(-4 * x + 4) + 10 * Math.exp(-Math.pow(x - 10, 2) / 2)
-\end{lstlisting}
-
-% TODO: Replace all x's that are not part of a longer word with the numeric x. This is
-% needed so that the 'x' in 'exp' is not replaced.
-% The number of requests is then f(x_something) * binWidth. Then wait binWidth
-% time before taking the next value.
-% Flexible approach that allows us to model steady growth/decay, periodic
-% patterns, and any number of spikes
 
 \begin{figure}
   \centering

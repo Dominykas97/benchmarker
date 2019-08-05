@@ -1,11 +1,10 @@
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public enum IOMode {
-    OFF("off"),
-    STARTUP("startup"),
-    REGULAR("regular");
-
-    public String mode;
-
-    IOMode(String mode) {
-        this.mode = mode;
-    }
+    @JsonProperty("off")
+    OFF,
+    @JsonProperty("startup")
+    STARTUP,
+    @JsonProperty("regular")
+    REGULAR;
 }

@@ -17,7 +17,7 @@ public class Component extends RichMapFunction<String, String> {
     public int numRequests; // how many requests to make to the database
     public double responseSize; // size of a single database response (in KB)
     public double databaseLatency; // the amount of time between a request and the first byte of the response (in ms)
-    public double bandwidth; // database response bandwidth (in Mbps)
+    public double bandwidth; // database response bandwidth (in Mb/s)
     public double intervalBetweenRequests; // how long to wait between database requests (in ms)
 
     private transient Meter meter;
@@ -30,29 +30,38 @@ public class Component extends RichMapFunction<String, String> {
     private static final int BYTES_IN_MB = 1 << 20;
     private static final int BYTES_IN_KB = 1 << 10;
 
+    private static void mySleep(long ns) throws Exception {
+        if (ns >= TimeUnit.NANOSECONDS.convert(15, TimeUnit.MILLISECONDS)) { // 15 ms
+            TimeUnit.NANOSECONDS.sleep(ns);
+        }
+    }
+
     private void simulateDatabaseAccess() throws Exception {
-        int latency = (int) (databaseLatency * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
-        int sleepTime = (int) (intervalBetweenRequests * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
+        long latency = (long) (databaseLatency * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
+        long sleepTime = (long) (intervalBetweenRequests * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
         int numNodes = (int) (responseSize * BYTES_IN_KB / NODE_SIZE);
-        int bandwidthLatency = (int) (NODE_SIZE / (bandwidth / 8 * BYTES_IN_MB) *
+        long bandwidthLatency = (long) (NODE_SIZE / (bandwidth / 8 * BYTES_IN_MB) *
                 TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS));
+        long expectedRuntime = (long) (8e9 * responseSize / 1024 / bandwidth);
         Random rng = new Random();
 
-        System.out.println("Number of nodes: " + numNodes);
-        System.out.println("Bandwidth latency: " + bandwidthLatency + " ms");
-
+        long sleepDebt = 0;
+        mySleep(latency);
         for (int i = 0; i < numRequests; i++) {
-            TimeUnit.NANOSECONDS.sleep(latency);
-
             // Gradually build up a linked list of random data, simulating a slow database response transfer
+            long innerStartTime = System.nanoTime();
             List<Long> data = new LinkedList<>();
             for (int j = 0; j < numNodes; j++) {
                 data.add(rng.nextLong());
-                TimeUnit.NANOSECONDS.sleep(bandwidthLatency);
+                mySleep(bandwidthLatency);
             }
-
+            long innerEndTime = System.nanoTime();
+            sleepDebt += expectedRuntime - innerEndTime + innerStartTime;
             if (i < numRequests - 1)
-                TimeUnit.NANOSECONDS.sleep(sleepTime);
+                sleepDebt += sleepTime + latency;
+            mySleep(sleepDebt);
+            if (sleepDebt >= 15e6)
+                sleepDebt = 0;
         }
     }
 

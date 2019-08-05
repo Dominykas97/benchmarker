@@ -21,3 +21,5 @@ max(abs(data$java_num_nodes - data$num_nodes))
 
 summary(data$error)
 plot(data$error)
+plot(data$expected_time, data$total_time)
+abline(0, 1)

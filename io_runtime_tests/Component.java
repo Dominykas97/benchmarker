@@ -37,11 +37,12 @@ public class Component {
         int numNodes = (int) fullNumNodes;
         long bandwidthLatency = (long) (NODE_SIZE / (bandwidth / 8 * BYTES_IN_MB) *
                                       TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS));
+        long expectedRuntime = (long) (8e9 * responseSize / 1024 / bandwidth);
         Random rng = new Random();
 
+        long sleepDebt = 0;
+        mySleep(latency);
         for (int i = 0; i < numRequests; i++) {
-            mySleep(latency);
-
             // Gradually build up a linked list of random data, simulating a slow database response transfer
             long innerStartTime = System.nanoTime();
             List<Long> data = new LinkedList<>();
@@ -50,18 +51,12 @@ public class Component {
                 mySleep(bandwidthLatency);
             }
             long innerEndTime = System.nanoTime();
-            long expectedRuntime = (long) (8e9 * responseSize / 1024 / bandwidth);
-            mySleep(expectedRuntime - innerEndTime + innerStartTime);
-
-            // In case of a sleep debt...
-            /*if (bandwidthLatency < 15e6) {
-                mySleep((long) (8e9 * responseSize / 1024 / bandwidth));
-            } else {
-                mySleep((long) ((fullNumNodes - numNodes) * bandwidthLatency));
-                }*/
-
+            sleepDebt += expectedRuntime - innerEndTime + innerStartTime;
             if (i < numRequests - 1)
-                mySleep(sleepTime);
+                sleepDebt += sleepTime + latency;
+            mySleep(sleepDebt);
+            if (sleepDebt >= 15e6)
+                sleepDebt = 0;
         }
 
         long endTime = System.nanoTime();
