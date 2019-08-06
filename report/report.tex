@@ -433,7 +433,7 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
   \label{fig:adjustment}
 \end{figure}
 
-\section{Experimental Evaluation}
+\section{Experimental Evaluation} \label{sec:experiments}
 
 Experiments were performed in order to determine how well performance metrics
 observed with a standalone Java application transfer to MiniShift. We explore
@@ -967,8 +967,6 @@ conclude that the algorithm is sufficiently accurate.
 
 \section{Generating Various Usage Patterns}
 
-% TODO: writing
-
 Hitherto the simulated user of the application was restricted to sending one or
 more messages at regular intervals. However, real usage patterns are often more
 complicated than that. For instance, a website might have more users during the
@@ -1024,6 +1022,75 @@ high---otherwise the simulation becomes inaccurate.
     $x=15$ with intervals of \texttt{binWidth} marked by dashed vertical lines
     and the function's values at their centres marked by yellow dots}
   \label{fig:functional_workload}
+\end{figure}
+
+\section{Statistical Testing of Memory Usage Data}
+
+% TODO: we recommend running 20 tests per configuration
+
+We return to the question: how can one look at the memory usage data across time
+throughout several experiments and deduce whether we use approximately the right
+amount of memory? First, we take the maximum value of each experiment, as lower
+values represent either memory usage before all variables are initialised or
+memory usage after some variables have been claimed by the garbage collector.
+This collection of maximum values then follows Gumbel distribution, which
+is meant to represent any maximum values \cite{gumbel1935valeurs}. We fit this
+distribution on the data using the R package \texttt{ismev}
+\cite{heffernan2012ismev} and check whether the expected amount of memory usage
+fits within two standard deviations of the fitted \emph{location} (mode) $\mu$
+of the distribution.
+
+\begin{table}
+  \centering
+  \caption{Expected memory usage compared to the mode of the fitted distribution
+    (all numbers are in \si{\mebi\byte})}
+  \begin{tabular}{c c c}
+    \toprule
+    Our expectation & $\mu$ & Standard error \\
+    \midrule
+    \tablenum{64} & \tablenum{77.1} & \tablenum{1.3} \\
+    \tablenum{128} & \tablenum{128.1} & \tablenum{11.3} \\
+    \tablenum{256} & \tablenum{272.3} & \tablenum{5.8} \\
+    \tablenum{512} & \tablenum{514.9} & \tablenum{25.7} \\
+    \bottomrule
+  \end{tabular}
+  \label{tbl:gumbel}
+\end{table}
+
+The goodness-of-fit plots in Figure~\ref{fig:gumbel_fit} show a reasonable fit
+for all except perhaps the \SI{128}{\mebi\byte} data set. According to the
+numerical data in Table~\ref{tbl:gumbel}, the \SI{128}{\mebi\byte} and
+\SI{512}{\mebi\byte} experiments pass our test, while the other two fail.
+The failure of the \SI{64}{\mebi\byte} test can be partially explained by the
+fact that---unlike the other data sets---this one has no data points below the
+expected amount of memory usage (i.e., all measurements are above
+\SI{70}{\mebi\byte}). This skews the data too far to the right.
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/memory_fit_64.png}
+    \caption{expected memory usage: \SI{64}{\mebi\byte}}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/memory_fit_128.png}
+    \caption{expected memory usage: \SI{128}{\mebi\byte}}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/memory_fit_256.png}
+    \caption{expected memory usage: \SI{256}{\mebi\byte}}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../plots/memory_fit_512.png}
+    \caption{expected memory usage: \SI{512}{\mebi\byte}}
+  \end{subfigure}
+  \caption{Goodness-of-fit plots for four different values of expected memory
+    usage based on our experiments in Section~\ref{sec:experiments}}
+  \label{fig:gumbel_fit}
 \end{figure}
 
 \bibliographystyle{abbrv}
