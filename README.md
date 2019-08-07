@@ -59,15 +59,5 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `results2.csv`
 * `report`
   * `talk`
-* `src/main/java`
-  * `Benchmarker.java`
-  * `Component.java`
-  * `Config.java`
-  * `ControlServer.java`
-  * `FunctionalWorkload.java`
-  * `IOMode.java`
-  * `Metric.java`
-  * `PeriodicWorkload.java`
-  * `WorkloadDeserializer.java`
-  * `Workload.java`
+* `src/main/java`: all Java classes meant for the actual application (rather than separate experiments)
 * `validator.R`
