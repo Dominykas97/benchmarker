@@ -20,7 +20,8 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `Dockerfile.control`: a Dockerfile for the control server
   * `openshift`: OpenShift manifestos generated using Kompose (with some modifications and additions)
 * `experiment.py`: the primary way to run a MiniShift experiment and get Prometheus data to a local directory
-* `io_memory_tests`
+* `local_experiments`: experiments with standalone Java applications similar to the main Component class
+* `io_memory_tests`: does the I/O system use the right amount of memory? Barely.
   * `analysis1.R`
   * `analysis2.R`
   * `Component.java`
@@ -30,7 +31,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `plots`
   * `results1.csv`
   * `results2.csv`
-* `io_runtime_tests`
+* `io_runtime_tests`: does the I/O system take the right amount of time? Usually.
   * `analysis.R`
   * `Component.java`
   * `experiment.py`
@@ -39,15 +40,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `RandomList.java`
   * `results.csv`
   * `results_ratio.csv`
-* `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
-* `plot_cpu_experiments.R`
-* `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
-* `plot_function.py`
-* `plot_memory_experiments.R`
-* `plots`
-* `plottting.R`
-* `prometheus`: the Prometheus MiniShift addon from [here](https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus) with minor modifications
-* `proof_of_concept`
+* `memory_tests`: does the main Component class use the right amount of memory? Yes!
   * `*.png`
   * `analysis.R`
   * `analysis2.R`
@@ -57,6 +50,14 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `FullComponent.java`
   * `results.csv`
   * `results2.csv`
+* `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
+* `plot_cpu_experiments.R`
+* `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
+* `plot_function.py`
+* `plot_memory_experiments.R`
+* `plots`
+* `plottting.R`
+* `prometheus`: the Prometheus MiniShift addon from [here](https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus) with minor modifications
 * `report`: you might want to read it
   * `talk`: slides for a talk midway through the project
 * `src/main/java`: all Java classes meant for the actual application (rather than separate experiments)
