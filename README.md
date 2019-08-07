@@ -13,13 +13,13 @@ A tool to efficiently test cloud resource configurations for distributed applica
   2. the expected amount of memory (64, 128, 256, or 512 MiB)
   3. the size of the output string (1, 2, 4, ..., 256 MiB)
   4. run ID (in case there are multiple runs with the same parameters)
-* `docker`
-  * `control-entrypoint.sh`
-  * `docker-compose.yml`
-  * `Dockerfile.bench`
-  * `Dockerfile.control`
-  * `openshift`
-* `experiment.py`
+* `docker`: all files needed to set up Docker Compose and/or OpenShift
+  * `control-entrypoint.sh`: the entrypoint script for the control server, running both the server and the Flink app
+  * `docker-compose.yml`: a Docker Compose file that was used as a basis for the OpenShift setup
+  * `Dockerfile.bench`: a Dockerfile for the Flink JobManagers and TaskManagers
+  * `Dockerfile.control`: a Dockerfile for the control server
+  * `openshift`: OpenShift manifestos generated using Kompose (with some modifications and additions)
+* `experiment.py`: the primary way to run a MiniShift experiment and get Prometheus data to a local directory
 * `io_memory_tests`
   * `analysis1.R`
   * `analysis2.R`
@@ -39,14 +39,14 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `RandomList.java`
   * `results.csv`
   * `results_ratio.csv`
-* `Makefile`
+* `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
 * `plot_cpu_experiments.R`
-* `plot_experiment.py`
+* `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
 * `plot_function.py`
 * `plot_memory_experiments.R`
 * `plots`
 * `plottting.R`
-* `prometheus`
+* `prometheus`: the Prometheus MiniShift addon from [here](https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus) with minor modifications
 * `proof_of_concept`
   * `*.png`
   * `analysis.R`
@@ -57,7 +57,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `FullComponent.java`
   * `results.csv`
   * `results2.csv`
-* `report`
-  * `talk`
+* `report`: you might want to read it
+  * `talk`: slides for a talk midway through the project
 * `src/main/java`: all Java classes meant for the actual application (rather than separate experiments)
 * `validator.R`
