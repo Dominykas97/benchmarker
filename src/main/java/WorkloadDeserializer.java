@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
 
+/* A Jackson extension teaching Jackson how to recognise which Workload class to initialise */
 public class WorkloadDeserializer extends StdDeserializer<Workload> {
+
     WorkloadDeserializer() {
         this(null);
     }

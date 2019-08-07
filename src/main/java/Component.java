@@ -8,6 +8,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
 
+/* A Flink map responsible for simulating the desired performance characteristics */
 public class Component extends RichMapFunction<String, String> {
     public double cpuTime; // time to sleep (in ms)
     public double memoryUsage; // how much memory to fill (in MB)

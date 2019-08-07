@@ -4,6 +4,9 @@ import javax.script.ScriptException;
 import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 
+/* This class sends messages to the given output channel according to the function given by the field 'function'.
+   It is initialised by Jackson when given an appropriate global.yaml file with variables corresponding to the fields
+   of this class. */
 public class FunctionalWorkload extends Workload {
     public String function;
     public double binWidth;

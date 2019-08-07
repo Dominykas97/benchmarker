@@ -13,8 +13,9 @@ import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
+/* The main class of the Flink application, responsible for setting up a chain of components with the control server
+   as the source of input */
 public class Benchmarker {
-
     public static void main(String[] args) throws Exception {
         // Construct a list of components from the config file
         String componentsText = new String(Files.readAllBytes(Paths.get("config/components.yaml")));

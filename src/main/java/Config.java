@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.util.List;
 
+/* Jackson instantiates this class after reading the global.yaml config file */
 public class Config {
     public String controlHostname;
     public int controlPort;

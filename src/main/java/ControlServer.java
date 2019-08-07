@@ -4,9 +4,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.security.cert.X509Certificate;
-import java.time.Period;
 import java.util.concurrent.TimeUnit;
 
+/* A server responsible for sending messages to the Flink application as well
+   as gathering and recording Prometheus data */
 public class ControlServer {
 
     /*

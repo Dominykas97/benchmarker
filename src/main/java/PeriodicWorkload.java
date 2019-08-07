@@ -1,6 +1,8 @@
 import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 
+/* This workload class sends requestsPerMessage messages/requests every n seconds, where n is calculated from
+   messagesPerSecond */
 public class PeriodicWorkload extends Workload {
     public int experimentDuration;
     public float messagesPerSecond;
