@@ -4,10 +4,11 @@ A tool to efficiently test cloud resource configurations for distributed applica
 ## Directories and Files
 * `config`
   * `components.yaml`
-  * `flink-conf.yaml`
+  * `flink-conf.yaml`: the configuration file for Flink (added to the Docker image)
   * `global_periodic.yaml`
+  * `global.yaml`
   * `ml_components.yaml`
-  * `prometheus.yml`
+  * `prometheus.yml`: the configuration file for Prometheus (used manually)
 * `data`: each file records a single experiment. Each filename has four parts:
   1. what performance metric was measured (`cpu`, `heap`, or `throughput`)
   2. the expected amount of memory (64, 128, 256, or 512 MiB)
@@ -23,6 +24,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
 * `local_experiments`: experiments with standalone Java applications similar to the main Component class
   * `io_memory_tests`: does the I/O system use the right amount of memory? Barely.
   * `io_runtime_tests`: does the I/O system take the right amount of time? Usually.
+    * `linkedlist*` and `RandomList.java`: how long does it take to add a random number to a linked list?
   * `memory_tests`: does the main Component class use the right amount of memory? Yes!
   * `analysis*.R`: data analysis and plots using R
   * `Component.java`: versions of the original Component class adapted to be run without Flink
@@ -30,9 +32,6 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `FullComponent.java`: similar to Component.java, but used to check the performance after adjusting the constants
   * `plots` and `*.png`: plots specific to that set of experiments
   * `results*.csv`: column names can be found in the analysis files
-  * `linkedlist_analysis.R`
-  * `linkedlist.csv`
-  * `RandomList.java`
 * `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
 * `plot_cpu_experiments.R`
 * `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
