@@ -21,35 +21,18 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `openshift`: OpenShift manifestos generated using Kompose (with some modifications and additions)
 * `experiment.py`: the primary way to run a MiniShift experiment and get Prometheus data to a local directory
 * `local_experiments`: experiments with standalone Java applications similar to the main Component class
-* `io_memory_tests`: does the I/O system use the right amount of memory? Barely.
-  * `analysis1.R`
-  * `analysis2.R`
-  * `Component.java`
-  * `experiment1.py`
-  * `experiment2.py`
-  * `FullComponent.java`
-  * `plots`
-  * `results1.csv`
-  * `results2.csv`
-* `io_runtime_tests`: does the I/O system take the right amount of time? Usually.
-  * `analysis.R`
-  * `Component.java`
-  * `experiment.py`
+  * `io_memory_tests`: does the I/O system use the right amount of memory? Barely.
+  * `io_runtime_tests`: does the I/O system take the right amount of time? Usually.
+  * `memory_tests`: does the main Component class use the right amount of memory? Yes!
+  * `analysis*.R`: data analysis and plots using R
+  * `Component.java`: versions of the original Component class adapted to be run without Flink
+  * `experiment*.py`: Python scripts that run Component with various parameters and capture its performance in a CSV file
+  * `FullComponent.java`: similar to Component.java, but used to check the performance after adjusting the constants
+  * `plots` and `*.png`: plots specific to that set of experiments
+  * `results*.csv`: column names can be found in the analysis files
   * `linkedlist_analysis.R`
   * `linkedlist.csv`
   * `RandomList.java`
-  * `results.csv`
-  * `results_ratio.csv`
-* `memory_tests`: does the main Component class use the right amount of memory? Yes!
-  * `*.png`
-  * `analysis.R`
-  * `analysis2.R`
-  * `Component.java`
-  * `experiment.py`
-  * `experiment2.py`
-  * `FullComponent.java`
-  * `results.csv`
-  * `results2.csv`
 * `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
 * `plot_cpu_experiments.R`
 * `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
