@@ -224,8 +224,8 @@ and TaskManager, both on port 9250.
     % connections in second column
     \umlVHVassemblyconnector{Control Persistent Volume Claim}{Control Persistent Volume}
     \umlVHVassemblyconnector{Control Pod}{Control Persistent Volume Claim}
-    \umlprovidedinterface[interface=998, with port, distance=2.5]{Control Server}
-    \umlrequiredinterface[interface=998, with port]{Benchmarker}
+    \umlprovidedinterface[interface=9998, with port, distance=2.5]{Control Server}
+    \umlrequiredinterface[interface=9998, with port]{Benchmarker}
     \umlHVassemblyconnector{Control Service}{Control Server-west-interface}
     \umlHVassemblyconnector{Control Service}{Benchmarker-east-interface}
 
@@ -387,7 +387,7 @@ memory \cite{java_memory}.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/prediction2.png}
+  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/prediction2.png}
   \caption{A log-log plot comparing the number of characters in a string and the
   observed memory unaccounted by the array. In each column, separate points
   correspond to different array sizes. The curve is a best-fit linear regression
@@ -404,7 +404,7 @@ more details).
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/prediction1.png}
+  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/prediction1.png}
   \caption{A log-log plot showing memory consumption across a range of array
     sizes, with different string sizes represented by different colours. For
     each string size, we also draw a regression line in the corresponding
@@ -428,7 +428,7 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../proof_of_concept/adjusted.png}
+  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/adjusted.png}
   \caption{A heat map of errors (in \si{\kibi\byte})}
   \label{fig:adjustment}
 \end{figure}
@@ -794,12 +794,12 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_density_relative.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_density_relative.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_density_errors.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_density_errors.png}
     \caption{errors (in \si{\mebi\byte})}
   \end{subfigure}
   \caption{Density plots of errors}
@@ -810,12 +810,12 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{\textwidth}
     \centering
-    \includegraphics[width=0.5\textwidth]{../io_memory_tests/plots/prediction_relative1.png}\includegraphics[width=0.5\textwidth]{../io_memory_tests/plots/prediction_relative2.png}
+    \includegraphics[width=0.5\textwidth]{../local_experiments/io_memory_tests/plots/prediction_relative1.png}\includegraphics[width=0.5\textwidth]{../local_experiments/io_memory_tests/plots/prediction_relative2.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_errors.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_errors.png}
     \caption{errors}
     \label{fig:prediction_error_b}
   \end{subfigure}
@@ -827,18 +827,18 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_array_size.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_array_size.png}
     \caption{array size}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_string_length.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_string_length.png}
     \caption{string length}
     \label{fig:prediction_violin_b}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/prediction_violin_num_nodes.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_num_nodes.png}
     \caption{number of nodes}
   \end{subfigure}
   \caption{Violin plots of errors against the three independent variables}
@@ -877,12 +877,12 @@ positive-to-negative trend in errors with respect to increasing
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_density_rel.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_density_rel.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_density_errors.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_density_errors.png}
     \caption{errors (in \si{\mebi\byte})}
   \end{subfigure}
   \caption{Density plots of errors}
@@ -893,12 +893,12 @@ positive-to-negative trend in errors with respect to increasing
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_relative_errors.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_relative_errors.png}
     \caption{relative errors}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_errors.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_errors.png}
     \caption{errors}
   \end{subfigure}
   \caption{Errors in memory usage, comparing the program's measured memory usage
@@ -910,19 +910,19 @@ positive-to-negative trend in errors with respect to increasing
   \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_exp.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_error_exp.png}
     \caption{expected memory usage}
     \label{fig:posterior_violin_memory}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_output.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_error_output.png}
     \caption{output size}
     \label{fig:posterior_violin_output}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../io_memory_tests/plots/posterior_error_response.png}
+    \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/posterior_error_response.png}
     \caption{response size}
     \label{fig:posterior_violin_response}
   \end{subfigure}

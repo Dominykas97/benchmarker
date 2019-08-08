@@ -1,6 +1,7 @@
 import subprocess
 import yaml
 
+PROJECT_NAME = 'benchmarking-internship'
 HOSTFOLDER_NAME = 'hostfolder'
 PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
 COMPONENTS_FILE = 'config/components.yaml'
@@ -18,7 +19,7 @@ def run_experiment(filename_suffix = ''):
     # Wait until the control server finishes
     # NOTE: if the pod fails, this will run forever
     while True:
-        status = subprocess.run(['oc', 'get', 'po', 'control'],
+        status = subprocess.run(['oc', '-n', PROJECT_NAME, 'get', 'po', 'control'],
                                 stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
         if status == 'Completed':
             break

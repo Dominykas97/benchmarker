@@ -17,8 +17,8 @@ spec:
       mountPath: /opt/flink/config
     - name: control-volume
       mountPath: /opt/flink/data
-    securityContext:
-      privileged: true
+#    securityContext:
+#      privileged: true
   volumes:
     - name: config-files
       configMap:

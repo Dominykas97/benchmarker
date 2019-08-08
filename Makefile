@@ -1,3 +1,5 @@
+PROJECT_NAME := benchmarking-internship
+
 build: package bench control
 
 package:
@@ -14,27 +16,29 @@ control:
 promclean:
     oc delete sa,clusterrolebinding,route,svc,secret,deployment,configmap -l app=prometheus -n myproject --as=system:admin
 
-clean:
-	-oc delete configmaps benchmarker-configs
-	-oc delete -f docker/openshift/taskmanager-service.yaml
-	-oc delete -f docker/openshift/taskmanager-pod.yaml
-	-oc delete -f docker/openshift/control-service.yaml
-	-oc delete -f docker/openshift/control-pod.yaml
-	-oc delete -f docker/openshift/jobmanager-service.yaml
-	-oc delete -f docker/openshift/jobmanager-pod.yaml
-	-oc delete -f docker/openshift/control-pvc.yaml
-	-oc delete -f docker/openshift/control-pv.yaml
-
 prom:
 	minishift addon apply prometheus --addon-env namespace=myproject
 
+clean-outer:
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-service.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/taskmanager-service.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-service.yaml
+#	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pvc.yaml
+
+clean:
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pod.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/taskmanager-pod.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-pod.yaml
+	-oc -n $(PROJECT_NAME) delete configmaps benchmarker-configs
+
+up-outer:
+#	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pvc.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/control-service.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/taskmanager-service.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/jobmanager-service.yaml
+
 up:
-	oc create configmap benchmarker-configs --from-file=config/components.yaml --from-file=config/global.yaml
-	oc create -f docker/openshift/control-pv.yaml
-	oc create -f docker/openshift/control-pvc.yaml
-	oc create -f docker/openshift/jobmanager-pod.yaml
-	oc create -f docker/openshift/jobmanager-service.yaml
-	oc create -f docker/openshift/control-pod.yaml
-	oc create -f docker/openshift/control-service.yaml
-	oc create -f docker/openshift/taskmanager-pod.yaml
-	oc create -f docker/openshift/taskmanager-service.yaml
+	oc -n $(PROJECT_NAME) create configmap benchmarker-configs --from-file=config/components.yaml --from-file=config/global.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pod.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/taskmanager-pod.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/jobmanager-pod.yaml
