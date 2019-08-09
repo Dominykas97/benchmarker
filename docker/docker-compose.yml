@@ -1,11 +1,5 @@
 version: "3"
 services:
-  control:
-    image: dilkas/benchmarker-control
-    ports:
-      - "9998:9998"
-    restart: "no"
-
   jobmanager:
     image: dilkas/benchmarker-flink
     expose:
@@ -18,6 +12,12 @@ services:
     command: jobmanager
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    restart: "no"
+
+  control:
+    image: dilkas/benchmarker-control
+    ports:
+      - "9998:9998"
     restart: "no"
 
   taskmanager:
@@ -36,6 +36,10 @@ services:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
     logging:
       driver: none
+    restart: "no"
+
+  start:
+    image: dilkas/benchmarker-start
     restart: "no"
 
 #  prometheus:

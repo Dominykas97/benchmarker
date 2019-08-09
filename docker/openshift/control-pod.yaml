@@ -6,19 +6,18 @@ metadata:
     io.kompose.service: control
   name: control
 spec:
-  restartPolicy: Never
   containers:
   - image: dilkas/benchmarker-control
     name: control
     ports:
     - containerPort: 9998
+    resources: {}
     volumeMounts:
     - name: config-files
       mountPath: /opt/flink/config
     - name: control-volume
       mountPath: /opt/flink/data
-#    securityContext:
-#      privileged: true
+  restartPolicy: Never
   volumes:
     - name: config-files
       configMap:
@@ -26,3 +25,4 @@ spec:
     - name: control-volume
       persistentVolumeClaim:
         claimName: control-pvc
+status: {}

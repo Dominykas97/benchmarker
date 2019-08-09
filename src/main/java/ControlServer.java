@@ -45,6 +45,7 @@ public class ControlServer {
 
     public static void main(String[] args) throws Exception {
         Config config = Config.getInstance();
+        System.out.println("Control server is initialising");
 
         try (
                 ServerSocket server = new ServerSocket(config.controlPort);

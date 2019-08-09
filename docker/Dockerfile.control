@@ -1,10 +1,3 @@
-FROM dilkas/benchmarker-flink
+FROM dilkas/benchmarker-start
 
-ADD docker/control-entrypoint.sh ./
-ADD target/benchmarker-0.1.jar ./
-
-RUN chmod +x control-entrypoint.sh && \
-    chgrp -Rf root /opt/flink && \
-    chmod -Rf 775 /opt/flink
-
-ENTRYPOINT ["./control-entrypoint.sh"]
+CMD ["java", "-cp", "benchmarker-0.1.jar", "ControlServer"]

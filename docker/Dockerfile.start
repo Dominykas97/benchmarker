@@ -1,0 +1,8 @@
+FROM dilkas/benchmarker-flink
+
+ADD target/benchmarker-0.1.jar ./
+
+RUN chgrp -Rf root /opt/flink && \
+    chmod -Rf 775 /opt/flink
+
+CMD ["flink", "run", "-m", "jobmanager:8081", "benchmarker-0.1.jar"]
