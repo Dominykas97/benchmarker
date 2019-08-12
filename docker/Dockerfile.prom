@@ -1,0 +1,8 @@
+FROM prom/prometheus
+
+USER root
+
+ADD config/prometheus.yml /etc/prometheus/
+
+RUN chgrp -Rf root /prometheus && \
+    chmod -Rf 775 /prometheus

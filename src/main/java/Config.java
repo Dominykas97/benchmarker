@@ -10,6 +10,7 @@ public class Config {
     public String controlHostname;
     public int controlPort;
     public String prometheusHostname;
+    public String prometheusPort;
     public List<Metric> metrics;
     public Workload workload;
 

@@ -1,5 +1,6 @@
 import javax.net.ssl.*;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -68,17 +69,17 @@ public class ControlServer {
             System.out.println("The job took about " + runtime + " min (" + runtimeMs + " ms)");
         }
 
-        // Since Prometheus uses HTTPS without a valid certificate, we need to disable some stuff
+        // Needed when connecting to Prometheus using HTTPS
         trustAllCertificates();
         disableHostnameVerification();
 
         System.out.println("Recording " + config.metrics.size() + " metrics");
         for (int i = 0; i < config.metrics.size(); i++) {
             // Get the JSON performance data
-            URL prometheus = new URL("https://" + config.prometheusHostname +
+            URL prometheus = new URL("http://" + config.prometheusHostname + ":" + config.prometheusPort +
                     "/api/v1/query?query=" + config.metrics.get(i).query + "[" + runtime + "m]");
             System.out.println("Connecting to " + prometheus);
-            HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) prometheus.openConnection();
             BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String data = br.readLine();
             br.close();
