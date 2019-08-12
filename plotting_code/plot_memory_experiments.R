@@ -11,7 +11,7 @@ errors = data.frame(expected = integer(), output = integer(), error = integer())
 
 for (expected_heap_usage in c(64, 128, 256, 512)) {
   # Find all relevant files
-  cpu_files = list.files("data/", sprintf("heap_%d*", expected_heap_usage), full.names = TRUE)
+  cpu_files = list.files("../data/", sprintf("heap_%d*", expected_heap_usage), full.names = TRUE)
 
   df <- data.frame(matrix(ncol = 6, nrow = 0))
   colnames(df) <- c("variable", "timestamp", "value", "colour", "size", "alpha")
@@ -58,7 +58,7 @@ for (expected_heap_usage in c(64, 128, 256, 512)) {
     scale_colour_manual(values = c("black", "red", "blue", "green"), name = "", labels = c("individual runs", "median", "mean", "expected memory usage")) +
     scale_linetype_manual(name = "", values = 2, guide = guide_legend(override.aes = list(color = "green"))) +
     scale_fill_manual("", values = colour$blue)
-  ggsave(sprintf("plots/heap_%d.png", expected_heap_usage))
+  ggsave(sprintf("../plots/heap_%d.png", expected_heap_usage))
 }
 
 all_outputs <- sort(unique(errors$output))

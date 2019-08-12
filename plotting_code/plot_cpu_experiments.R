@@ -7,7 +7,7 @@ colour <- list()
 colour[c("red", "blue", "green")] <- brewer.pal(n = 3, name = "Set1")
 
 # Find all relevant files
-cpu_files = list.files("data/", "cpu*", full.names = TRUE)
+cpu_files = list.files("../data/", "cpu*", full.names = TRUE)
 
 df <- data.frame(matrix(ncol = 5, nrow = 0))
 colnames(df) <- c("variable", "timestamp", "value", "colour", "size")
@@ -48,4 +48,4 @@ ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time (s)") + ylab("CPU 
   scale_colour_manual(values = c("black", "red", "blue"), name = "", labels = c("individual runs", "median", "mean")) +
   scale_fill_manual("", values = colour$blue)
 
-ggsave(sprintf("plots/cpu_experiment.png"))
+ggsave(sprintf("../plots/cpu_experiment.png"))

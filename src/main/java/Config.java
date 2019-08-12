@@ -11,6 +11,7 @@ public class Config {
     public int controlPort;
     public String prometheusHostname;
     public String prometheusPort;
+    public int numExperiments;
     public List<Metric> metrics;
     public Workload workload;
 

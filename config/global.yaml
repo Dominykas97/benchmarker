@@ -2,6 +2,7 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 prometheusPort: 9090
+numExperiments: 1
 metrics:
   - name: Throughput
     filename: throughput

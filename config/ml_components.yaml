@@ -1,25 +1,25 @@
 - cpuTime: 170 # ms
   memoryUsage: 52 # MB
   outputSize: 52 # KB
-  databaseOnStartup: false
+  ioMode: regular
   numRequests: 0
   responseSize: 10240 # KB
   databaseLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
 - cpuTime: 720000 # ms
-  memoryUsage: ??? # MB
+  memoryUsage: 60 # MB
   outputSize: 500 # KB
-  databaseOnStartup: false
+  ioMode: regular
   numRequests: 0
   responseSize: 2 # KB
   databaseLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
-- cpuTime: ??? # ms
-  memoryUsage: ??? # MB
-  outputSize: ??? # KB
-  databaseOnStartup: false
+- cpuTime: 90000 # ms
+  memoryUsage: 664 # MB
+  outputSize: 20480 # KB
+  ioMode: regular
   numRequests: 0
   responseSize: 9728 # KB
   databaseLatency: 0 # ms

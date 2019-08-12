@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 /* A server responsible for sending messages to the Flink application as well
    as gathering and recording Prometheus data */
 public class ControlServer {
+    private static Config config;
 
     /*
      * From https://stackoverflow.com/questions/1201048/allowing-java-to-use-an-untrusted-certificate-for-ssl-https-connection
@@ -44,10 +45,7 @@ public class ControlServer {
         HttpsURLConnection.setDefaultHostnameVerifier(hv);
     }
 
-    public static void main(String[] args) throws Exception {
-        Config config = Config.getInstance();
-        System.out.println("Control server is initialising");
-
+    private static void sendMessages() throws Exception {
         try (
                 ServerSocket server = new ServerSocket(config.controlPort);
                 Socket socket = server.accept();
@@ -56,8 +54,10 @@ public class ControlServer {
             // Send messages to the Flink app
             config.workload.execute(out);
         }
+    }
 
-        // Re-open the server and read the job's runtime
+    /* Re-open the server and read the job's runtime */
+    private static long receiveRuntime() throws Exception {
         long runtime;
         try (
                 ServerSocket server = new ServerSocket(config.controlPort);
@@ -68,11 +68,10 @@ public class ControlServer {
             runtime = TimeUnit.MINUTES.convert(runtimeMs, TimeUnit.MILLISECONDS) + 1;
             System.out.println("The job took about " + runtime + " min (" + runtimeMs + " ms)");
         }
+        return runtime;
+    }
 
-        // Needed when connecting to Prometheus using HTTPS
-        trustAllCertificates();
-        disableHostnameVerification();
-
+    private static void saveMetrics(long runtime, int index) throws Exception {
         System.out.println("Recording " + config.metrics.size() + " metrics");
         for (int i = 0; i < config.metrics.size(); i++) {
             // Get the JSON performance data
@@ -85,7 +84,7 @@ public class ControlServer {
             br.close();
 
             // Write it to a file
-            String filename = "data/" + config.metrics.get(i).filename + ".json";
+            String filename = "data/" + config.metrics.get(i).filename + "_" + index + ".json";
 
             System.out.println("Writing this data to " + filename + ":");
             System.out.println(data);
@@ -95,6 +94,23 @@ public class ControlServer {
             writer.write(data);
             writer.close();
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        config = Config.getInstance();
+        System.out.println("Control server is initialising");
+
+        for (int i = 0; i < config.numExperiments; i++) {
+            sendMessages();
+            long runtime = receiveRuntime();
+
+            // Needed when connecting to Prometheus using HTTPS
+            trustAllCertificates();
+            disableHostnameVerification();
+
+            saveMetrics(runtime, i);
+        }
+
         System.out.println("Control server is terminating");
     }
 }

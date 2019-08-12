@@ -1,6 +1,8 @@
 import subprocess
 import yaml
 
+# NOTE: this way to run and capture an experiment is specific to MiniShift
+
 PROJECT_NAME = 'benchmarking-internship'
 HOSTFOLDER_NAME = 'hostfolder'
 PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
@@ -13,7 +15,9 @@ with open('config/global.yaml', 'r') as config:
     metrics = yaml.safe_load(config)['metrics']
 
 def run_experiment(filename_suffix = ''):
+    subprocess.run(['make', 'clean-all'])
     subprocess.run(['make', 'clean'])
+    subprocess.run(['make', 'up-all'])
     subprocess.run(['make', 'up'])
 
     # Wait until the control server finishes
