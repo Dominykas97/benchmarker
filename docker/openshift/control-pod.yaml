@@ -17,6 +17,8 @@ spec:
       mountPath: /opt/flink/config
     - name: control-volume
       mountPath: /opt/flink/data
+    securityContext: # Needed for MiniShift, comment out for OpenShift
+      privileged: true
   restartPolicy: Never
   volumes:
     - name: config-files

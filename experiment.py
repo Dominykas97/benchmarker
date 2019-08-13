@@ -1,4 +1,5 @@
 import subprocess
+import time
 import yaml
 
 # NOTE: this way to run and capture an experiment is specific to MiniShift
@@ -10,31 +11,31 @@ COMPONENTS_FILE = 'config/components.yaml'
 BASE_MEMORY_CONSUMPTION = 40 << 20
 BYTES_PER_CHAR = 3.26845703125
 
-# Read in a list of metrics
-with open('config/global.yaml', 'r') as config:
-    metrics = yaml.safe_load(config)['metrics']
-
 def run_experiment(filename_suffix = ''):
-    subprocess.run(['make', 'clean-all'])
+    subprocess.run(['minishift', 'ssh', 'rm', PERSISTENT_VOLUME_DIR_NAME + '/*'])
     subprocess.run(['make', 'clean'])
-    subprocess.run(['make', 'up-all'])
     subprocess.run(['make', 'up'])
 
     # Wait until the control server finishes
     # NOTE: if the pod fails, this will run forever
     while True:
-        status = subprocess.run(['oc', '-n', PROJECT_NAME, 'get', 'po', 'control'],
+        status = subprocess.run(['oc', '-n', PROJECT_NAME, 'get', 'po', 'start'],
                                 stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
         if status == 'Completed':
             break
 
     # Move files from the persistent volume to the host folder using MiniShift SSH
-    for metric in metrics:
-        new_name = metric['filename'] + filename_suffix
-        command = 'minishift ssh "touch {}/{}.json; echo \`cat {}/{}.json\` > {}/{}.json"'.format(
-            HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, metric['filename'], HOSTFOLDER_NAME, new_name)
+    time.sleep(1)
+    files = subprocess.run(['minishift', 'ssh', 'ls', PERSISTENT_VOLUME_DIR_NAME],
+                           stdout=subprocess.PIPE).stdout.decode('utf-8').split()
+    for f in files:
+        parts_of_f = f.split('_')
+        new_name = parts_of_f[0] + filename_suffix + '_' + parts_of_f[1]
+        command = 'minishift ssh "touch {}/{}; echo \`cat {}/{}\` > {}/{}"'.format(
+            HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, f, HOSTFOLDER_NAME, new_name)
         subprocess.Popen(command, shell=True)
 
+#subprocess.Popen('rm ../' + PERSISTENT_VOLUME_DIR_NAME + '/*', shell=True)
 run_experiment()
 
 """for memory in map(lambda x: 2**x, range(10)):

@@ -4,7 +4,7 @@ metadata:
   name: control-pv
 spec:
   capacity:
-    storage: 10Mi
+    storage: 1Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain

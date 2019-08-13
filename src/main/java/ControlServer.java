@@ -71,15 +71,26 @@ public class ControlServer {
         return runtime;
     }
 
+    private static InputStream getPrometheusInputStream(int metricIndex, long runtime) throws Exception {
+        String protocol = config.prometheusUsesHttps? "https" : "http";
+        String port = config.prometheusUsesHttps? "" : (":" + config.prometheusPort);
+        URL prometheus = new URL(protocol + "://" + config.prometheusHostname + port +
+                "/api/v1/query?query=" + config.metrics.get(metricIndex).query + "[" + runtime + "m]");
+        System.out.println("Connecting to " + prometheus);
+        if (config.prometheusUsesHttps) {
+            HttpsURLConnection connection = (HttpsURLConnection) prometheus.openConnection();
+            return connection.getInputStream();
+        }
+        HttpURLConnection connection = (HttpURLConnection) prometheus.openConnection();
+        return connection.getInputStream();
+    }
+
     private static void saveMetrics(long runtime, int index) throws Exception {
         System.out.println("Recording " + config.metrics.size() + " metrics");
         for (int i = 0; i < config.metrics.size(); i++) {
             // Get the JSON performance data
-            URL prometheus = new URL("http://" + config.prometheusHostname + ":" + config.prometheusPort +
-                    "/api/v1/query?query=" + config.metrics.get(i).query + "[" + runtime + "m]");
-            System.out.println("Connecting to " + prometheus);
-            HttpURLConnection connection = (HttpURLConnection) prometheus.openConnection();
-            BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            InputStream stream = getPrometheusInputStream(i, runtime);
+            BufferedReader br = new BufferedReader(new InputStreamReader(stream));
             String data = br.readLine();
             br.close();
 
@@ -100,17 +111,15 @@ public class ControlServer {
         config = Config.getInstance();
         System.out.println("Control server is initialising");
 
-        for (int i = 0; i < config.numExperiments; i++) {
-            sendMessages();
-            long runtime = receiveRuntime();
-
-            // Needed when connecting to Prometheus using HTTPS
+        if (config.prometheusUsesHttps) {
             trustAllCertificates();
             disableHostnameVerification();
-
-            saveMetrics(runtime, i);
         }
 
-        System.out.println("Control server is terminating");
+        for (int i = 0; ; i++) {
+            sendMessages();
+            long runtime = receiveRuntime();
+            saveMetrics(runtime, i);
+        }
     }
 }
