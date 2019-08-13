@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
@@ -49,10 +50,14 @@ public class Benchmarker {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         CollectionType listType = mapper.getTypeFactory().constructCollectionType(ArrayList.class, Component.class);
         components = mapper.readValue(componentsText, listType);
+
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         config = Config.getInstance();
+        long delay = (long) (config.delayBetweenExperiments * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MINUTES));
 
         for (int i = 0; i < config.numExperiments; i++) {
+            if (i > 0)
+                TimeUnit.NANOSECONDS.sleep(delay);
             JobExecutionResult result = runExperiment();
             sendRuntime(result.getNetRuntime());
         }

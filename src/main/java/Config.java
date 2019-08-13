@@ -12,6 +12,7 @@ public class Config {
     public String prometheusHostname;
     public String prometheusPort;
     public int numExperiments;
+    public double delayBetweenExperiments;
     public boolean prometheusUsesHttps;
     public List<Metric> metrics;
     public Workload workload;

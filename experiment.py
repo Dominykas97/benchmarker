@@ -35,7 +35,7 @@ def run_experiment(filename_suffix = ''):
             HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, f, HOSTFOLDER_NAME, new_name)
         subprocess.Popen(command, shell=True)
 
-#subprocess.Popen('rm ../' + PERSISTENT_VOLUME_DIR_NAME + '/*', shell=True)
+subprocess.Popen('rm ../' + PERSISTENT_VOLUME_DIR_NAME + '/*', shell=True)
 run_experiment()
 
 """for memory in map(lambda x: 2**x, range(10)):
