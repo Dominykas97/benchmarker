@@ -2,8 +2,9 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 prometheusPort: 9090
-numExperiments: 1
 prometheusUsesHttps: false
+numExperiments: 1
+delayBetweenExperiments: 1 # in min
 metrics:
   - name: Throughput
     filename: throughput

@@ -57,7 +57,6 @@
 }
 
 \lstset{
-   language=JavaScript,
    %backgroundcolor=\color{lightgray},
    extendedchars=true,
    basicstyle=\footnotesize\ttfamily,
@@ -170,15 +169,38 @@ Configuration Files component in Figure~\ref{fig:uml} represents a
 \texttt{ConfigMap} OpenShift entity created using the \texttt{oc} command that
 contains two configuration files, \texttt{global.yaml} and
 \texttt{components.yaml} (see Figures \ref{fig:global} and \ref{fig:components}
-for examples). The former contains basic networking information along with three
-parameters that control the experiment as well as a list of metrics.
-The experiment-specific parameters control how often to send messages
-(\texttt{messagesPerSecond}), how long the experiment should last
-(\texttt{experimentDuration}), and how many messages to send at a time
-(\texttt{requestsPerMessage}). Each metric is described with three properties:
-\texttt{name}, \texttt{filename}, and \texttt{query}. The last one corresponds
-to the name of the property as defined by Prometheus, while the other two are
-used for data storage and plotting. The \texttt{components.yaml} configuration
+for examples). The former contains some basic networking information such as
+hostnames and port numbers as well as:
+\begin{description}
+\item[\texttt{prometheusUsesHttps}:] a Boolean variable indicating whether
+  Prometheus is configured to provide data using HTTP or (broken) HTTPS. The
+  MiniShift add-on uses HTTPS, while a run-of-the-mill Prometheus Docker
+  container uses HTTP.
+\item[\texttt{numExperiments}] defines how many (identical) experiments to run.
+\item[\texttt{delayBetweenExperiments}] defines how long to wait between
+  experiments (in \si{\minute}). It is recommended to set this to about
+  \SI{1}{\minute} so that Prometheus data for one experiment would not contain
+  data from the previous experiment.
+\item[\texttt{metrics}] is a list of metrics, each described using three
+  properties:
+  \begin{description}
+  \item[\texttt{name}:] the `pretty' name of the metric, used for plotting.
+  \item[\texttt{filename}:] the `basic' name of the metric, used as part of the
+    filename when saving performance data to a file.
+  \item[\texttt{query}:] the name of the metric as understood by Prometheus.
+  \end{description}
+\item[\texttt{workload}] defines how many messages to send, and at what
+  intervals. More specifically, it contains:
+  \begin{description}
+  \item[\texttt{messagesPerSecond}:] how often to send messages.
+  \item[\texttt{experimentDuration}:] how long the experiment should
+    last.
+  \item[\texttt{requestsPerMessage}:] how many messages/requests to send
+    at a time.
+  \end{description}
+\end{description}
+
+The \texttt{components.yaml} configuration
 file, on the other hand, describes a sequence of processing stages (maps), each
 with its own CPU usage time, memory usage, and output data size (i.e., the
 amount of data passed to the next stage).
@@ -191,7 +213,6 @@ had to be modified in order to disable OAuth-based authentication by replacing
   \texttt{-skip-auth-regex=\^{}/metrics} \quad \text{with} \quad
   \texttt{-skip-auth-regex=\^{}/}.
 \]
-This may or may not be a problem when moving from MiniShift to an actual cloud.
 Furthermore, Prometheus configuration file was updated to set both scrape and
 evaluation intervals to \SI{1}{\second} and the list of targets to JobManager
 and TaskManager, both on port 9250.
@@ -235,7 +256,7 @@ and TaskManager, both on port 9250.
     \umlVHVassemblyconnector[interface={\space}, arm1=-0.7]{Benchmarker}{Components}
 
     % Prometheus connections
-    \umlHVHassemblyconnector[interface=HTTPS, arm1=-2, with port]{Control Server}{Prometheus}
+    \umlHVHassemblyconnector[interface={HTTPS or 9090}, arm1=-2, with port]{Control Server}{Prometheus}
     \umlassemblyconnector[interface=9250, arm1=1, with port]{Prometheus}{JobManager Service}
     \umlHVHassemblyconnector[interface=9250, arm1=8, with port]{Prometheus}{TaskManager Service}
 
@@ -256,20 +277,29 @@ and TaskManager, both on port 9250.
 \begin{lstlisting}[escapeinside={(*}{*)}]
 controlHostname: control
 controlPort: 9998
+
 prometheusHostname: prometheus
-messagesPerSecond: 1
-experimentDuration: 3 # in seconds
-requestsPerMessage: 3
+prometheusPort: 9090
+prometheusUsesHttps: true
+
+numExperiments: 1
+delayBetweenExperiments: 1 # in (*\si{\minute}*)
+
 metrics:
   - name: Throughput
     filename: throughput
     query: flink_taskmanager_job_task_operator_componentThroughput
-  - name: Heap Usage ((*\si{\mebi\byte}*))
-    filename: heap
+  - name: Memory Usage ((*\si{\mebi\byte}*))
+    filename: memory
     query: flink_taskmanager_Status_JVM_Memory_Heap_Used
   - name: CPU Load
     filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load
+
+workload:
+  messagesPerSecond: 1
+  experimentDuration: 3 # in seconds
+  requestsPerMessage: 3
 \end{lstlisting}
   \caption{Example \texttt{global.yaml}}
   \label{fig:global}
@@ -596,35 +626,47 @@ modelling assumptions:
 
 For a realistic model of a machine learning (ML) system, we measured a
 classification system used to construct algorithm portfolios (akin to
-\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package Llama
-\cite{kotthoff_llama_2013} and run on a thousand maximum common subgraph
-problems and three algorithms. The resulting performance metrics are displayed
-in Figure~\ref{fig:ml_diagram}. Sending a single message, then, corresponds to
-selecting a subset of data, generating features, and training an ML model.
+\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package
+\texttt{llama} \cite{kotthoff_llama_2013} and run on a thousand maximum common
+subgraph problems and three algorithms. The resulting performance metrics are
+displayed in Figure~\ref{fig:ml_diagram}, with each component's
+\texttt{outputSize} positioned next to its outgoing arrow. Sending a single
+message, then, corresponds to selecting a subset of data, generating features,
+and training an ML model. Note that the last two parameters define each
+component's I/O (i.e., file-reading) properties and can be easily ignored
+(otherwise, see Section~\ref{sec:io} for more details). Other I/O-related
+parameters are assumed to be big enough (or small enough) so that their exact
+values are irrelevant to the performance of the system.
 
 \setlength{\tabcolsep}{3pt}
 \begin{figure}
   \centering
-  \begin{tikzpicture}[component/.style={draw, text width=3.5cm, align=center}]
+  \begin{tikzpicture}[component/.style={draw, text width=4cm, align=center}]
     \node[component] at (0, 0) (filtering) {
-      \textbf{Data filtering}\\
+      \textbf{Data Filtering}\\
       \begin{tabular}{r l}
-        CPU: & \SI{170}{\milli\second}\\
-        Memory: & \SI{52}{\mebi\byte}
+        \texttt{cpuTime}: & \SI{170}{\milli\second}\\
+        \texttt{memoryUsage}: & \SI{52}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{1}\\
+        \texttt{responseSize}: & \SI{10}{\mebi\byte}
       \end{tabular}
     };
     \node[component] at (6, 0) (features) {
-      \textbf{Feature generation}\\
+      \textbf{Feature Generation}\\
       \begin{tabular}{r l}
-        CPU: & \SI{12}{\minute}\\
-        Memory: & \SI{60}{\mebi\byte}
+        \texttt{cpuTime}: & \SI{12}{\minute}\\
+        \texttt{memoryUsage}: & \SI{60}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{2000}\\
+        \texttt{responseSize}: & \SI{2}{\kibi\byte}
       \end{tabular}
     };
     \node[component] at (12, 0) (learning) {
       \textbf{Learning}
       \begin{tabular}{r l}
-        CPU: & \SI{90}{\second}\\
-        Memory: & \SI{664}{\mebi\byte}
+        \texttt{cpuTime}: & \SI{90}{\second}\\
+        \texttt{memoryUsage}: & \SI{664}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{21}\\
+        \texttt{responseSize}: & \SI{9.5}{\mebi\byte}
       \end{tabular}
     };
     \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
@@ -637,7 +679,7 @@ selecting a subset of data, generating features, and training an ML model.
 \end{figure}
 \setlength{\tabcolsep}{6pt}
 
-\section{Input/Output Simulation}
+\section{Input/Output Simulation} \label{sec:io}
 
 In order to simulate input/output (I/O) interactions similar to accessing a
 database or reading a file, we introduce a number of new component-specific

@@ -2,9 +2,9 @@ controlHostname: control
 controlPort: 9998
 prometheusHostname: prometheus
 prometheusPort: 9090
-numExperiments: 3
-delayBetweenExperiments: 1 # in min. 1 min is recommended to ensure that different experiments are treated separately.
 prometheusUsesHttps: true
+numExperiments: 3
+delayBetweenExperiments: 1 # in min
 metrics:
   - name: Throughput
     filename: throughput

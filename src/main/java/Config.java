@@ -9,13 +9,16 @@ import java.util.List;
 public class Config {
     public String controlHostname;
     public int controlPort;
+
     public String prometheusHostname;
     public String prometheusPort;
+    public boolean prometheusUsesHttps;
+
     public int numExperiments;
     public double delayBetweenExperiments;
-    public boolean prometheusUsesHttps;
     public List<Metric> metrics;
     public Workload workload;
+
     private static final String FILENAME = "config/global.yaml";
 
     /* Initialise this class from a configuration file */
