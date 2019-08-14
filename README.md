@@ -1,6 +1,15 @@
 # Benchmarker
 A tool to efficiently test cloud resource configurations for distributed applications
 
+## Useful Commands
+* `make` recompiles Java code and uploads the latest versions of Docker images to Docker Hub
+* `make prom-mini-up` and `make prom-mini-clean` are used to control the Prometheus addon for MiniShift
+* `make clean-prom` and `make up-prom` do the same thing for OpenShift
+* `make clean-all` and `make up-all` should be used after making changes to pods that stay up between experimental runs
+* `make clean` and `make up` run an experiment, but if you want to see the output, consider using a Python script instead
+* `python experiment.py` runs a MiniShift experiment (or a series or experiments)
+* `python plot_experiment.py` generates Matplotlib plots from the data retrieved by `experiment.py`
+
 ## Directories and Files
 * `config`
   * `components.yaml`: a configuration file that lays out a chain of components and their resource usage (used automatically)
@@ -33,7 +42,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
   * `FullComponent.java`: similar to Component.java, but used to check the performance after adjusting the constants
   * `plots` and `*.png`: plots specific to that set of experiments
   * `results*.csv`: column names can be found in the analysis files
-* `Makefile`: the only currently used command is `make build`, which compiles all Java code into a JAR, builds Docker images, and uploads them to Docker Hub
+* `Makefile`: some builds are used manually, and some are used by scripts such as `experiment.py`
 * `plot_experiment.py`: after performing an experiment with `experiment.py`, this is an easy way to visualise the results
 * `plots`: all plots that are not from `local_experiments`
 * `plotting_code`: R and Python scripts for plotting
