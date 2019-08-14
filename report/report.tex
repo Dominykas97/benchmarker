@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{amssymb}
 \usepackage{booktabs}
 \usepackage[T1]{fontenc}
 \usepackage{mathtools}
@@ -8,6 +9,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{pifont}
 \usepackage{subcaption}
 \usepackage{tikz}
 \usepackage{tikz-uml}
@@ -19,6 +21,8 @@
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
 
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
 \DeclareSIUnit{\million}{\text{million}}
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{fit,calc}
@@ -1086,14 +1090,14 @@ of the distribution.
   \centering
   \caption{Expected memory usage compared to the mode of the fitted distribution
     (all numbers are in \si{\mebi\byte})}
-  \begin{tabular}{c c c}
+  \begin{tabular}{c c c c}
     \toprule
-    Our expectation & $\mu$ & Standard error \\
+    Our expectation & $\mu$ & Standard error & Statistical test passes \\
     \midrule
-    \tablenum{64} & \tablenum{77.1} & \tablenum{1.3} \\
-    \tablenum{128} & \tablenum{128.1} & \tablenum{11.3} \\
-    \tablenum{256} & \tablenum{272.3} & \tablenum{5.8} \\
-    \tablenum{512} & \tablenum{514.9} & \tablenum{25.7} \\
+    \tablenum{64} & \tablenum{77.1} & \tablenum{1.3} & \xmark \\
+    \tablenum{128} & \tablenum{128.1} & \tablenum{11.3} & \cmark \\
+    \tablenum{256} & \tablenum{272.3} & \tablenum{5.8} & \xmark \\
+    \tablenum{512} & \tablenum{514.9} & \tablenum{25.7} & \cmark \\
     \bottomrule
   \end{tabular}
   \label{tbl:gumbel}
@@ -1134,6 +1138,11 @@ expected amount of memory usage (i.e., all measurements are above
     usage based on our experiments in Section~\ref{sec:experiments}}
   \label{fig:gumbel_fit}
 \end{figure}
+
+While using a Gumbel distribution to model the data is a statistically sound
+decision, defining the `acceptable' region by two standard errors is an
+arbitrary choice and should be improved in the future, perhaps by returning a
+$p$-value instead of a yes/no answer.
 
 \bibliographystyle{abbrv}
 \bibliography{report}

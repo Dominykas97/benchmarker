@@ -4,14 +4,20 @@ library(reshape2)
 library(rjson)
 library(RColorBrewer)
 
+EXPECTED_MEMORY_USAGE <- c(64, 128, 256, 512)
+DATA_DIRECTORY <- "../data"
+DATA_FILENAME <- "heap"
+NUM_COLOURS_IN_HEATMAP <- 110 # an arbitrary choice, but bigger numbers look better
+
 colour <- list()
 colour[c("red", "blue", "green")] <- brewer.pal(n = 3, name = "Set1")
 
 errors = data.frame(expected = integer(), output = integer(), error = integer())
 
-for (expected_heap_usage in c(64, 128, 256, 512)) {
+for (expected_heap_usage in EXPECTED_MEMORY_USAGE) {
   # Find all relevant files
-  cpu_files = list.files("../data/", sprintf("heap_%d*", expected_heap_usage), full.names = TRUE)
+  cpu_files = list.files(paste0(DATA_DIRECTORY, "/"), sprintf("%s_%d*", DATA_FILENAME, expected_heap_usage),
+                         full.names = TRUE)
 
   df <- data.frame(matrix(ncol = 6, nrow = 0))
   colnames(df) <- c("variable", "timestamp", "value", "colour", "size", "alpha")
@@ -35,14 +41,18 @@ for (expected_heap_usage in c(64, 128, 256, 512)) {
   }
 
   # Calculate mean, median, and standard deviation over time
-  mean_df <- data.frame(variable = character(), timestamp = integer(), value = double(), colour = character(), size = double(), alpha = double())
-  median_df <- data.frame(variable = character(), timestamp = integer(), value = double(), colour = character(), size = double(), alpha = double())
+  mean_df <- data.frame(variable = character(), timestamp = integer(),value = double(),
+                        colour = character(), size = double(), alpha = double())
+  median_df <- data.frame(variable = character(), timestamp = integer(), value = double(),
+                          colour = character(), size = double(), alpha = double())
   std_df <- data.frame(timestamp = integer(), mean = double(), std = double())
   for (i in 0:max_timestamp) {
     values_at_time_i <- df$value[df$timestamp == i]
 
-    median_row <- data.frame(variable = "median", timestamp = i, value = median(values_at_time_i), colour = colour$red, size = 1, alpha = 1)
-    mean_row <- data.frame(variable = "mean", timestamp = i, value = mean(values_at_time_i), colour = colour$blue, size = 1, alpha = 1)
+    median_row <- data.frame(variable = "median", timestamp = i, value = median(values_at_time_i),
+                             colour = colour$red, size = 1, alpha = 1)
+    mean_row <- data.frame(variable = "mean", timestamp = i, value = mean(values_at_time_i),
+                           colour = colour$blue, size = 1, alpha = 1)
     std_row <- data.frame(timestamp = i, mean = mean(values_at_time_i), std = sd(values_at_time_i))
 
     mean_df <- rbind(mean_df, median_row)
@@ -53,12 +63,15 @@ for (expected_heap_usage in c(64, 128, 256, 512)) {
 
   ggplot(data = df, aes(x = timestamp, y = value)) + xlab("time (s)") + ylab("memory usage (MiB)") +
     geom_line(aes(group = variable, colour = df$colour), size = df$size, alpha = df$alpha) +
-    geom_ribbon(data = std_df, aes(x = timestamp, y = mean, ymin = mean - std, ymax = mean + std, fill = "one standard deviation"), alpha = 0.2) +
-    geom_hline(aes(linetype = "expected memory usage", yintercept = expected_heap_usage), size = 1, color = colour$green) +
-    scale_colour_manual(values = c("black", "red", "blue", "green"), name = "", labels = c("individual runs", "median", "mean", "expected memory usage")) +
+    geom_ribbon(data = std_df, aes(x = timestamp, y = mean, ymin = mean - std, ymax = mean + std,
+                                   fill = "one standard deviation"), alpha = 0.2) +
+    geom_hline(aes(linetype = "expected memory usage", yintercept = expected_heap_usage), size = 1,
+               color = colour$green) +
+    scale_colour_manual(values = c("black", "red", "blue", "green"), name = "",
+                        labels = c("individual runs", "median", "mean", "expected memory usage")) +
     scale_linetype_manual(name = "", values = 2, guide = guide_legend(override.aes = list(color = "green"))) +
     scale_fill_manual("", values = colour$blue)
-  ggsave(sprintf("../plots/heap_%d.png", expected_heap_usage))
+  ggsave(sprintf("../plots/%s_%d.png", DATA_FILENAME, expected_heap_usage))
 }
 
 all_outputs <- sort(unique(errors$output))
@@ -69,7 +82,8 @@ colnames(matrix) <- all_expected
 
 for (expected in all_expected) {
   for (output in all_outputs) {
-    matrix[toString(output), toString(expected)] <- median(errors$error[errors$expected == expected & errors$output == output])
+    matrix[toString(output), toString(expected)] <- median(
+      errors$error[errors$expected == expected & errors$output == output])
   }
 }
 
@@ -78,9 +92,9 @@ myPanel <- function(x, y, z, ...) {
   panel.levelplot(x, y, z, ...)
   panel.text(x, y, round(z, 2))
 }
-cols <- colorRampPalette(brewer.pal(11, "RdBu"))(110)
+cols <- colorRampPalette(brewer.pal(11, "RdBu"))(NUM_COLOURS_IN_HEATMAP)
 max_abs <- max(abs(matrix), na.rm = TRUE)
-brk <- do.breaks(c(-max_abs, max_abs), 110)
+brk <- do.breaks(c(-max_abs, max_abs), NUM_COLOURS_IN_HEATMAP)
 first_true <- which.max(brk > min(matrix, na.rm = TRUE))
 brk <- brk[(first_true - 1):length(brk)]
 cols <- cols[(first_true - 1):length(cols)]
