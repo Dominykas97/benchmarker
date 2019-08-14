@@ -15,7 +15,7 @@ public class FunctionalWorkload extends Workload {
 
     public void execute(PrintWriter out) throws Exception {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
-        long timeToSleep = (long) (1e9 * binWidth);
+        long timeToSleep = (long) (binWidth * TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS));
         try {
             // Evaluate the function at initialX + binWidth / 2, initialX + 3 * binWidth / 2, ..., < finalX
             for (double x = initialX + binWidth / 2; x < finalX; x += binWidth) {

@@ -17,5 +17,6 @@ public class PeriodicWorkload extends Workload {
                 out.println(".");
             if (i < numMessages - 1)
                 TimeUnit.NANOSECONDS.sleep((long) (1e+9 / messagesPerSecond));
-        }    }
+        }
+    }
 }

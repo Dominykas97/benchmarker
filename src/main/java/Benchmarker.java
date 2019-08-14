@@ -22,6 +22,7 @@ public class Benchmarker {
     private static List<Component> components;
     private static StreamExecutionEnvironment env;
 
+    /* Construct a chain of components, set the control server as the source of input, and perform an experiment */
     private static JobExecutionResult runExperiment() throws Exception {
         System.out.println("Connecting to the control server " + config.controlHostname + ":" + config.controlPort);
         DataStream<String> dataStream = env.socketTextStream(config.controlHostname, config.controlPort);
@@ -30,7 +31,8 @@ public class Benchmarker {
         return env.execute();
     }
 
-    /* Send the server the job's running time */
+    /* Send the job's running time to the control server (looping repeatedly in case the control server is delayed in
+       setting up a new server socket) */
     private static void sendRuntime(long runtime) throws Exception {
         boolean tryAgain = true;
         while (tryAgain) {
@@ -51,10 +53,12 @@ public class Benchmarker {
         CollectionType listType = mapper.getTypeFactory().constructCollectionType(ArrayList.class, Component.class);
         components = mapper.readValue(componentsText, listType);
 
+        // Set up a few other important variables
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         config = Config.getInstance();
         long delay = (long) (config.delayBetweenExperiments * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MINUTES));
 
+        // Run a number of (identical) experiments
         for (int i = 0; i < config.numExperiments; i++) {
             if (i > 0)
                 TimeUnit.NANOSECONDS.sleep(delay);

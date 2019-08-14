@@ -11,9 +11,10 @@ import java.util.concurrent.TimeUnit;
    as gathering and recording Prometheus data */
 public class ControlServer {
     private static Config config;
+    private static final String DATA_DIRECTORY = "data"; // where to save performance data
 
     /*
-     * From https://stackoverflow.com/questions/1201048/allowing-java-to-use-an-untrusted-certificate-for-ssl-https-connection
+       From https://stackoverflow.com/questions/1201048/allowing-java-to-use-an-untrusted-certificate-for-ssl-https-connection
      */
     private static void trustAllCertificates() throws Exception {
         // Create a trust manager that does not validate certificate chains
@@ -36,6 +37,7 @@ public class ControlServer {
         System.out.println("Installed the TrustManager");
     }
 
+    /* Needed to work around misconfigured HTTPS */
     private static void disableHostnameVerification() {
         HostnameVerifier hv = new HostnameVerifier() {
             public boolean verify(String urlHostName, SSLSession session) {
@@ -45,6 +47,7 @@ public class ControlServer {
         HttpsURLConnection.setDefaultHostnameVerifier(hv);
     }
 
+    /* Open a server socket, wait for the Flink app to connect, and send the messages */
     private static void sendMessages() throws Exception {
         try (
                 ServerSocket server = new ServerSocket(config.controlPort);
@@ -71,6 +74,8 @@ public class ControlServer {
         return runtime;
     }
 
+    /* Connect to Prometheus and construct an InputStream ready for reading performance data. The details differ
+       between HTTP and HTTPS connections. If unsure, try HTTP first. */
     private static InputStream getPrometheusInputStream(int metricIndex, long runtime) throws Exception {
         String protocol = config.prometheusUsesHttps? "https" : "http";
         String port = config.prometheusUsesHttps? "" : (":" + config.prometheusPort);
@@ -85,21 +90,21 @@ public class ControlServer {
         return connection.getInputStream();
     }
 
+    /* Save the Prometheus data for each performance metric in a separate file */
     private static void saveMetrics(long runtime, int index) throws Exception {
         System.out.println("Recording " + config.metrics.size() + " metrics");
         for (int i = 0; i < config.metrics.size(); i++) {
-            // Get the JSON performance data
+            // Get the performance data in JSON format
             InputStream stream = getPrometheusInputStream(i, runtime);
             BufferedReader br = new BufferedReader(new InputStreamReader(stream));
             String data = br.readLine();
             br.close();
 
-            // Write it to a file
-            String filename = "data/" + config.metrics.get(i).filename + "_" + index + ".json";
-
+            String filename = DATA_DIRECTORY + "/" + config.metrics.get(i).filename + "_" + index + ".json";
             System.out.println("Writing this data to " + filename + ":");
             System.out.println(data);
 
+            // Write it to a file
             File file = new File(filename);
             FileWriter writer = new FileWriter(file);
             writer.write(data);
@@ -116,6 +121,7 @@ public class ControlServer {
             disableHostnameVerification();
         }
 
+        // Count iterations so that data from different experiments can be saved to different files
         for (int i = 0; ; i++) {
             sendMessages();
             long runtime = receiveRuntime();

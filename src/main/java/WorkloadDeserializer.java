@@ -23,6 +23,7 @@ public class WorkloadDeserializer extends StdDeserializer<Workload> {
             throws IOException, JsonProcessingException {
         final JsonNode node = parser.getCodec().readTree(parser);
         final ObjectMapper mapper = (ObjectMapper) parser.getCodec();
+        // The functional workload is recognised from the keyword 'function'
         if (node.has("function"))
             return mapper.treeToValue(node, FunctionalWorkload.class);
         return mapper.treeToValue(node, PeriodicWorkload.class);

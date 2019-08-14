@@ -4,19 +4,21 @@ import yaml
 
 # NOTE: this way to run and capture an experiment is specific to MiniShift
 
-PROJECT_NAME = 'benchmarking-internship'
+PROJECT_NAME = 'benchmarking-internship' # As defined in the MiniShift/OpenShift system
 HOSTFOLDER_NAME = 'hostfolder'
 PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
 COMPONENTS_FILE = 'config/components.yaml'
 BASE_MEMORY_CONSUMPTION = 40 << 20
-BYTES_PER_CHAR = 3.26845703125
+BYTES_PER_CHAR = 3.26845703125 # Keep this constant the same as in the Component class
 
+# Filename_suffix is used to capture the parameters of the experiment (e.g., memory usage, etc.)
 def run_experiment(filename_suffix = ''):
+    # Remove data from previous runs and recreate relevant manifestos
     subprocess.run(['minishift', 'ssh', 'rm', PERSISTENT_VOLUME_DIR_NAME + '/*'])
     subprocess.run(['make', 'clean'])
     subprocess.run(['make', 'up'])
 
-    # Wait until the control server finishes
+    # Wait until the start pod finishes
     # NOTE: if the pod fails, this will run forever
     while True:
         status = subprocess.run(['oc', '-n', PROJECT_NAME, 'get', 'po', 'start'],
@@ -35,6 +37,7 @@ def run_experiment(filename_suffix = ''):
             HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, f, HOSTFOLDER_NAME, new_name)
         subprocess.Popen(command, shell=True)
 
+# Remove local data from previous runs
 subprocess.Popen('rm ../' + PERSISTENT_VOLUME_DIR_NAME + '/*', shell=True)
 run_experiment()
 

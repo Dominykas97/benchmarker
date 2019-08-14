@@ -16,13 +16,15 @@ public class Config {
     public boolean prometheusUsesHttps;
     public List<Metric> metrics;
     public Workload workload;
+    private static final String FILENAME = "config/global.yaml";
 
+    /* Initialise this class from a configuration file */
     static Config getInstance() throws Exception {
         final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         final SimpleModule module = new SimpleModule();
         module.addDeserializer(Workload.class, new WorkloadDeserializer());
         mapper.registerModule(module);
 
-        return mapper.readValue(new File("config/global.yaml"), Config.class);
+        return mapper.readValue(new File(FILENAME), Config.class);
     }
 }

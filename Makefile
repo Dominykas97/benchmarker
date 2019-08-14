@@ -16,9 +16,9 @@ prom:
 	docker build -f docker/Dockerfile.prom -t dilkas/benchmarker-prom --no-cache ./
 	docker push dilkas/benchmarker-prom
 
-prom-mini:
+prom-mini-up:
 	minishift addon apply prometheus --addon-env namespace=$(PROJECT_NAME)
-promclean:
+prom-mini-clean:
 	oc delete sa,clusterrolebinding,route,svc,secret,deployment,configmap -l app=prometheus -n $(PROJECT_NAME) --as=system:admin
 
 clean-prom:

@@ -9,6 +9,7 @@ LOCAL_DIR_WITH_PLOTS = '../benchmarker_plots'
 # Read in a list of metrics
 with open('config/global.yaml', 'r') as config:
     metrics = yaml.safe_load(config)['metrics']
+
 files = os.listdir(LOCAL_DIR_WITH_DATA)
 
 # Read in the performance data
