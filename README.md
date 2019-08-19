@@ -47,6 +47,7 @@ A tool to efficiently test cloud resource configurations for distributed applica
 * `plots`: all plots that are not from `local_experiments`
 * `plotting_code`: R and Python scripts for plotting
   * `plot_cpu_experiments.R`: plots CPU data from `data`
+  * `plot_example_pdf.R`: used to illustrate my definition of a p-value
   * `plot_function.py`: used to illustrate how function-based workload works
   * `plot_memory_experiments.R`: plots memory usage data from `data`
   * `plottting.R`: a helper function that draws better heatmaps (with the colour bar scaled and adjusted)
@@ -54,4 +55,4 @@ A tool to efficiently test cloud resource configurations for distributed applica
 * `report`: you might want to read it
   * `talk`: slides for a talk midway through the project
 * `src/main/java`: all Java classes meant for the actual application (rather than separate experiments)
-* `validator.R`: version 0.1 of a validator that can determine whether memory usage is as expected
+* `validator`: R code that uses statistics to answer the question: does the experimental data fit our expectations?
