@@ -5,9 +5,9 @@ library(rjson)
 library(ismev)
 
 EXPECTED_MEMORY_USAGE <- 512
-NUM_STANDARD_ERRORS <- 2
 DATA_DIRECTORY <- "data"
 DATA_FILENAME <- "heap"
+ALPHA <- 0.05
 
 # Construct a data frame of memory usage for a particular amount of expected memory usage
 get_memory_usage_data <- function(expected_memory_usage) {
@@ -33,14 +33,20 @@ get_memory_usage_data <- function(expected_memory_usage) {
   df
 }
 
+
 df <- get_memory_usage_data(EXPECTED_MEMORY_USAGE)
 data <- df %>% group_by(run_id) %>% summarise(memory_usage = max(memory_usage))
 fit <- gum.fit(data$memory_usage)
-result <- ifelse(EXPECTED_MEMORY_USAGE >= fit$mle[1] - NUM_STANDARD_ERRORS * fit$se[1] &&
-                   EXPECTED_MEMORY_USAGE <= fit$mle[1] + NUM_STANDARD_ERRORS * fit$se[1], "fits", "does not fit")
+location <- fit$mle[1]
+scale <- fit$mle[2]
+
+p <- pgumbel(EXPECTED_MEMORY_USAGE, loc = location, scale = scale) +
+  1 - pgumbel(2 * location - EXPECTED_MEMORY_USAGE, loc = location, scale = scale)
+result <- ifelse(p >= ALPHA, "fits", "does not fit")
 
 #gum.diag(fit)
 
-cat("Expected memory usage:", EXPECTED_MEMORY_USAGE, "MB")
-cat("Distribution of the data:", fit$mle[1], "+-", NUM_STANDARD_ERRORS * fit$se[1], "MB")
-cat("The data", result, "our expectations")
+print(sprintf("Our expectation: %d", EXPECTED_MEMORY_USAGE))
+print(sprintf("Mode of the data: %f", location))
+print(sprintf("The data %s our expectations with a p-value of %f", result, p))
+

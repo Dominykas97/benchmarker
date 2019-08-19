@@ -15,6 +15,7 @@ cpu_files = list.files(paste0(DATA_DIRECTORY, "/"), paste0(DATA_FILENAME, "*"), 
 
 df <- data.frame(matrix(ncol = 5, nrow = 0))
 colnames(df) <- c("variable", "timestamp", "value", "colour", "size")
+durations <- c()
 
 max_timestamp <- 0
 i <- 1
@@ -26,6 +27,7 @@ for (file in cpu_files) {
   df <- rbind(df, new_rows)
   max_timestamp = max(max_timestamp, length(value) - 1)
   i <- i + 1
+  durations <- c(durations, as.double(data[length(data) - 1]) - as.double(data[1]))
 }
 
 # Calculate mean, median, and standard deviation over time
