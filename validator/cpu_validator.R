@@ -7,7 +7,7 @@ EXPECTED_TIME <- 0
 ALPHA <- 0.05
 
 # Find all relevant files
-files = list.files(paste0(DATA_DIRECTORY, "/"), sprintf("%s_*", DATA_FILENAME),
+files = list.files(paste0(DATA_DIRECTORY, "../"), sprintf("%s_*", DATA_FILENAME),
                    full.names = TRUE)
 
 durations <- c()

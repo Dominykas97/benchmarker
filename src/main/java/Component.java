@@ -10,6 +10,10 @@ import org.apache.flink.metrics.MeterView;
 
 /* A Flink map responsible for simulating the desired performance characteristics */
 public class Component extends RichMapFunction<String, String> {
+    // which component to use as input (0 denotes the control server, higher numbers enumerate the
+    // components in the order defined in components.yaml)
+    public int parent;
+
     // General performance parameters (from components.yaml)
     public double cpuTime; // how much time should be spent on a single message while using CPU resources (in ms)
     public double memoryUsage; // how much memory to fill in total (in MB)

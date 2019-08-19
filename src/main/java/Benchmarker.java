@@ -25,9 +25,19 @@ public class Benchmarker {
     /* Construct a chain of components, set the control server as the source of input, and perform an experiment */
     private static JobExecutionResult runExperiment() throws Exception {
         System.out.println("Connecting to the control server " + config.controlHostname + ":" + config.controlPort);
-        DataStream<String> dataStream = env.socketTextStream(config.controlHostname, config.controlPort);
-        for (Component component : components)
-            dataStream = dataStream.map(component);
+        DataStream<String> source = env.socketTextStream(config.controlHostname, config.controlPort);
+
+        ArrayList<DataStream<String>> nodes = new ArrayList<>();
+        nodes.add(source);
+        for (Component component : components) {
+            try {
+                nodes.add(nodes.get(component.parent).map(component));
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println("The parent of this component is not a valid index");
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
         return env.execute();
     }
 

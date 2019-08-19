@@ -12,7 +12,7 @@ ALPHA <- 0.05
 # Construct a data frame of memory usage for a particular amount of expected memory usage
 get_memory_usage_data <- function(expected_memory_usage) {
   # Find all relevant files
-  files = list.files(paste0(DATA_DIRECTORY, "/"), sprintf("%s_%d*", DATA_FILENAME, expected_memory_usage),
+  files = list.files(paste0(DATA_DIRECTORY, "../"), sprintf("%s_%d*", DATA_FILENAME, expected_memory_usage),
                      full.names = TRUE)
 
   df <- data.frame(matrix(ncol = 4, nrow = 0))
