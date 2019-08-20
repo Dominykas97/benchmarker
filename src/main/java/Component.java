@@ -12,7 +12,7 @@ import org.apache.flink.metrics.MeterView;
 public class Component extends RichMapFunction<String, String> {
     // which component to use as input (0 denotes the control server, higher numbers enumerate the
     // components in the order defined in components.yaml)
-    public int parent;
+    public List<Integer> parents;
 
     // General performance parameters (from components.yaml)
     public double cpuTime; // how much time should be spent on a single message while using CPU resources (in ms)

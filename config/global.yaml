@@ -3,7 +3,7 @@ controlPort: 9998
 prometheusHostname: prometheus
 prometheusPort: 9090
 prometheusUsesHttps: true
-numExperiments: 3
+numExperiments: 1
 delayBetweenExperiments: 1 # in min
 metrics:
   - name: Throughput

@@ -25,15 +25,21 @@ public class Benchmarker {
     /* Construct a chain of components, set the control server as the source of input, and perform an experiment */
     private static JobExecutionResult runExperiment() throws Exception {
         System.out.println("Connecting to the control server " + config.controlHostname + ":" + config.controlPort);
-        DataStream<String> source = env.socketTextStream(config.controlHostname, config.controlPort);
+        DataStream<String> initial = env.socketTextStream(config.controlHostname, config.controlPort);
 
-        ArrayList<DataStream<String>> nodes = new ArrayList<>();
-        nodes.add(source);
+        // A list of DataStream nodes that could be used as inputs to new components
+        List<DataStream<String>> nodes = new ArrayList<>();
+        nodes.add(initial);
         for (Component component : components) {
             try {
-                nodes.add(nodes.get(component.parent).map(component));
+                // Take the DataStream of the first parent and union it with all the others
+                DataStream<String> unifiedInput = nodes.get(component.parents.get(0));
+                List<Integer> otherParentsIndices = component.parents.subList(1, component.parents.size());
+                for (int i : otherParentsIndices)
+                    unifiedInput = unifiedInput.union(nodes.get(i));
+                nodes.add(unifiedInput.map(component));
             } catch (IndexOutOfBoundsException e) {
-                System.err.println("The parent of this component is not a valid index");
+                System.err.println("The list of parents is incorrect");
                 e.printStackTrace();
                 System.exit(1);
             }

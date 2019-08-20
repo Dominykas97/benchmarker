@@ -1,4 +1,5 @@
-- parent: 0
+- parents:
+    - 0
   cpuTime: 170 # ms
   memoryUsage: 52 # MB
   outputSize: 52 # KB
@@ -8,7 +9,8 @@
   databaseLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
-- parent: 1
+- parents:
+    - 1
   cpuTime: 720000 # ms
   memoryUsage: 60 # MB
   outputSize: 500 # KB
@@ -18,7 +20,8 @@
   databaseLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
-- parent: 2
+- parents:
+    - 2
   cpuTime: 90000 # ms
   memoryUsage: 664 # MB
   outputSize: 20480 # KB
