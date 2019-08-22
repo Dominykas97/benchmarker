@@ -1,46 +1,46 @@
 version: "3"
 services:
-  # jobmanager:
-  #   image: dilkas/benchmarker-flink
-  #   expose:
-  #     - "9250"
-  #   ports:
-  #     - "6123:6123"
-  #     - "6124:6124"
-  #     - "8081:8081" # Web UI
-  #     - "9250:9250" # for Prometheus
-  #   command: jobmanager
-  #   environment:
-  #     - JOB_MANAGER_RPC_ADDRESS=jobmanager
-  #   restart: "no"
+  jobmanager:
+    image: dilkas/benchmarker-flink
+    expose:
+      - "9250"
+    ports:
+      - "6123:6123"
+      - "6124:6124"
+      - "8081:8081" # Web UI
+      - "9250:9250" # for Prometheus
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    restart: "no"
 
-  # control:
-  #   image: dilkas/benchmarker-control
-  #   ports:
-  #     - "9998:9998"
-  #   restart: "no"
+  control:
+    image: dilkas/benchmarker-control
+    ports:
+      - "9998:9998"
+    restart: "no"
 
-  # taskmanager:
-  #   image: dilkas/benchmarker-flink
-  #   expose:
-  #     - "9250"
-  #   ports:
-  #     - "6121:6121"
-  #     - "6122:6122"
-  #     - "9250:9250" # for Prometheus
-  #   command: taskmanager
-  #   environment:
-  #     - JOB_MANAGER_RPC_ADDRESS=jobmanager
-  #   logging:
-  #     driver: none
-  #   restart: "no"
+  taskmanager:
+    image: dilkas/benchmarker-flink
+    expose:
+      - "9250"
+    ports:
+      - "6121:6121"
+      - "6122:6122"
+      - "9250:9250" # for Prometheus
+    command: taskmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    logging:
+      driver: none
+    restart: "no"
 
-  # start:
-  #   image: dilkas/benchmarker-start
-  #   restart: "no"
+  start:
+    image: dilkas/benchmarker-start
+    restart: "no"
 
   prometheus:
     image: prom/prometheus
-#    image: dilkas/benchmarker-prom
+    #image: dilkas/benchmarker-prom
     ports:
       - "9090:9090" # Web UI

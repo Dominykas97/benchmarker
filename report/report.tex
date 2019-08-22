@@ -85,31 +85,31 @@
 
 \section{Introduction}
 
-Before an application is deployed to a cloud, one needs to select the required
-number of resources. But what is the right resource configuration for \emph{my}
-application? One might ask and wonder whether there is a way to obtain a clear
-answer.
+Before an application is deployed to a cloud, one needs to allocate resources
+for different parts of the system. But what is the right resource configuration
+for \emph{my} application? How would it change if my application became more
+popular or I added some extra functionality?
 
 We present a benchmarking system that can simulate the workflow of a range of
-distributed applications, measure various performance metrics, and detect
-whether a given resource configuration is sufficient for the application to
-perform well.
+distributed applications, measure various performance metrics, and determine
+whether the simulated performance matches our expectations. The system comes
+with several predefined configuration files that represent realistic workloads
+of common applications. Every aspect of each configuration file can be adjusted,
+and new configuration files can be created.
 
-The system comes with a number of predefined configuration files that represent
-realistic workloads of common applications. Every aspect of each configuration
-file can be adjusted, and new configuration files can be created to represent,
-e.g., additional components of the application.
+Our simulated applications consist of a collection of components together with a
+control server, all arranged as a directed acyclic graph (DAG). The
+\emph{control server} is responsible for generating and sending \emph{messages}.
+Messages travel via the edges of the graph. When a \emph{component} receives a
+message, it simulates a predefined amount of work. Properties of this work can
+be customised separately for each component.
 
-Our simulated applications consist of a sequence of maps implemented using
-Apache Flink. They receive messages from a \emph{control server} and perform a
-predefined amount of work, using a predefined amount of memory. The server can
-send any number messages at specified intervals (or in more interesting
-patterns, if I get around to implementing that).
-
-The Flink application is enclosed in a Docker container and deployed on the
-OpenShift cloud platform. Performance metrics are recorded using Prometheus,
-which is assumed to be a separate application deployed on the same OpenShift
-platform.
+The components are implemented as \texttt{RichMapFunction}s from Apache Flink.
+The entire simulation system is packaged into several Docker containers and can
+be deployed on either an OpenShift cluster or a local MiniShift setup.
+Performance metrics are recorded using Prometheus, which can be managed
+separately or deployed together with the rest of the system.
+% TODO: outline the rest of the paper (fixing its structure as necessary)
 
 \section{Architecture and Implementation}
 
@@ -131,49 +131,52 @@ and simulates work and how performance metrics are tracked and recorded.
 \subsection{Deployment} \label{sec:deployment}
 
 Flink deployment consists of a JobManager that manages the work, one or more
-TaskManagers that execute tasks, and a command that tells JobManager what to do.
-In order to deploy these services on OpenShift, we need to put each `work unit'
-(something that can run on a separate node) in its own Docker container. We
-ended up using two simple Dockerfiles.
+TaskManagers that execute tasks, and a command that tells the JobManager what to
+do. In order to deploy these services on OpenShift, we need to put each `work
+unit' (something that can run on a separate node) in its own Docker container.
+We ended up using three simple Dockerfiles that were put on Docker Hub in order
+to make them easily accessible to both OpenShift and MiniShift:
+\begin{itemize}
+\item one for Flink TaskManagers and JobManagers that extends the \texttt{flink}
+  Dockerfile with a new configuration file and support for Prometheus;
+\item one to initialise a sequence of experiments (this is run
+    separately so that most other containers could be reused for many
+    experiments without having to restart them\footnote{Restarting something on
+      an OpenShift cluster often requires one to wait
+      \SIrange[range-phrase=--,range-units=single]{3}{5}{\minute} between some
+      commands, otherwise networking management bugs out and services become
+      unreachable.});
+  \item and one to run the control server.
+\end{itemize}
 
-The first one is used for both TaskManagers and the JobManager and extends the
-original Flink Docker image by enabling Prometheus support on port 9250.
-Prometheus can then use that port to retrieve and record performance metrics.
-
-The second Dockerfile extends the first one by adding a JAR file with Java code
-for both the control server and the Flink app. This image also contains a custom
-\texttt{ENTRYPOINT} shell script that sends the Flink app to the JobManager (via
-port 8081) as a background process, while executing the control server in the
-foreground. This is the optimal arrangement of the two processes since the
-control server always waits for the Flink app to finish in order to take its
-running time into account when requesting data from Prometheus.
-
-In both Dockerfiles, one needs to change the permissions and group ownership of the
-\texttt{/opt/flink} directory (to \texttt{775} and \texttt{root} respectively)
-so that the containers can be successfully executed by any user belonging to the
-group \texttt{root}. Both images were put on Docker Hub in order to make them
-easily accessible by MiniShift.
+In order to have these Dockerfiles run on OpenShift, we need to make a few
+adjustments, since every container on OpenShift is run as an unspecified user
+belonging to the \texttt{root} group, and many applications are built to be run
+as a specific user instead. To fix this, one needs to change the permissions and
+group ownership of relevant directories on the file system (to \texttt{775} and
+\texttt{root} respectively).
 
 A Docker Compose file can then be used to combine several Dockerfiles into a
-valid deployment configuration. In this file we define three services:
-\texttt{Control}, \texttt{JobManager}, and \texttt{TaskManager}, establishing
-open ports as pictured in Figure~\ref{fig:uml}. This file was then converted to
-OpenShift manifestos using Kompose\footnote{\url{http://kompose.io/}}. The
-generated manifestos, relevant network connections, and other dependencies are
-displayed in Figure~\ref{fig:uml}. A notable difference between the two
-configurations is that while a Docker Compose file defines only services,
-OpenShift has both services and pods. \emph{Service} manifestos define the
-network interface (i.e., what ports are open), while manifestos for \emph{pods}
-contain the details of what Docker containers should be run, restart policy,
-additional data that should be mounted to the pod, etc. The entire system can
-then be updated and deployed by generating a new JAR file using Maven, building
-and uploading the two Dockerfiles, and recreating all components of the
-OpenShift configuration, as described by the manifestos.
+valid deployment configuration. In this file we define five services:
+\texttt{JobManager}, \texttt{TaskManager}, \texttt{Control}, \texttt{Start}, and
+\texttt{Prometheus}, establishing open ports as pictured in
+Figure~\ref{fig:uml}. This file was then converted to OpenShift manifestos using
+Kompose\footnote{\url{http://kompose.io/}}. The generated manifestos, relevant
+network connections, and other dependencies are displayed in
+Figure~\ref{fig:uml}. A notable difference between the two configurations is
+that while a Docker Compose file defines only services, OpenShift has both
+services and pods. \emph{Service} manifestos define the network interface (i.e.,
+what ports are open), while manifestos for \emph{pods} contain the details of
+what Docker containers should be run, restart policy, additional data that
+should be mounted to the pod, etc. The entire system can then be updated and
+deployed by generating a new JAR file using Maven, building and uploading the
+Dockerfiles, and recreating all components of the OpenShift configuration, as
+described by the manifestos.
 
 % deployment of configuration files
 Configuration Files component in Figure~\ref{fig:uml} represents a
 \texttt{ConfigMap} OpenShift entity created using the \texttt{oc} command that
-contains two configuration files, \texttt{global.yaml} and
+contains two configuration files: \texttt{global.yaml} and
 \texttt{components.yaml} (see Figures \ref{fig:global} and \ref{fig:components}
 for examples). The former contains some basic networking information such as
 hostnames and port numbers as well as:
@@ -211,7 +214,7 @@ file, on the other hand, describes a sequence of processing stages (maps), each
 with its own CPU usage time, memory usage, and output data size (i.e., the
 amount of data passed to the next stage).
 
-% local Prometheus setup
+% MiniShift Prometheus setup
 Lastly, it is worth mentioning that the Prometheus add-on for
 MiniShift\footnote{\url{https://github.com/minishift/minishift-addons/tree/master/add-ons/prometheus}}
 had to be modified in order to disable OAuth-based authentication by replacing
@@ -223,6 +226,7 @@ Furthermore, Prometheus configuration file was updated to set both scrape and
 evaluation intervals to \SI{1}{\second} and the list of targets to JobManager
 and TaskManager, both on port 9250.
 
+% TODO: what are we doing with prometheus?
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -233,11 +237,14 @@ and TaskManager, both on port 9250.
       \umlbasiccomponent[x=-6, y=-4, fill=red!20]{Components}
     \end{umlcomponent}
 
+    \begin{umlcomponent}{Start Pod}
+      \umlbasiccomponent[x=-6, y=-8, fill=red!20]{Benchmarker}
+    \end{umlcomponent}
+
     % components: second column
     \umlbasiccomponent[x=0, y=1]{Control Service}
     \begin{umlcomponent}{Control Pod}
       \umlbasiccomponent[x=0, y=-2, fill=red!20]{Control Server}
-      \umlbasiccomponent[x=0, y=-4, fill=red!20]{Benchmarker}
     \end{umlcomponent}
     \umlbasiccomponent[x=0, y=-7]{Control Persistent Volume Claim}
     \umlbasiccomponent[x=0, y=-10]{Control Persistent Volume}
@@ -248,18 +255,20 @@ and TaskManager, both on port 9250.
     \umlbasiccomponent[x=6, y=-4]{TaskManager Service}
     \umlbasiccomponent[x=6, y=-8]{TaskManager Pod}
 
+    % connections in first column
+    \umlrequiredinterface[interface=9998, with port]{Benchmarker}
+    \umlHVHassemblyconnector[arm2=0.1]{Control Service}{Benchmarker-east-interface} % the Flink app connects to the control server
+    \umlHVHassemblyconnector[interface={\space}, arm1=-0.6]{Benchmarker}{Global}
+    \umlHVHassemblyconnector[interface={\space}, arm1=0.6]{Benchmarker}{Components}
+
     % connections in second column
     \umlVHVassemblyconnector{Control Persistent Volume Claim}{Control Persistent Volume}
     \umlVHVassemblyconnector{Control Pod}{Control Persistent Volume Claim}
     \umlprovidedinterface[interface=9998, with port, distance=2.5]{Control Server}
-    \umlrequiredinterface[interface=9998, with port]{Benchmarker}
     \umlHVassemblyconnector{Control Service}{Control Server-west-interface}
-    \umlHVassemblyconnector{Control Service}{Benchmarker-east-interface}
 
     % connections between first and second columns
-    \umlHVHassemblyconnector[interface={\space}, arm1=-2.3]{Benchmarker}{Global}
     \umlVHVassemblyconnector[interface={\space}]{Control Server}{Global}
-    \umlVHVassemblyconnector[interface={\space}, arm1=-0.7]{Benchmarker}{Components}
 
     % Prometheus connections
     \umlHVHassemblyconnector[interface={HTTPS or 9090}, arm1=-2, with port]{Control Server}{Prometheus}
@@ -270,11 +279,12 @@ and TaskManager, both on port 9250.
     \umlVHVassemblyconnector[interface={6123{,} 6124{,} 8081{,} 9250}, with port]{JobManager Pod}{JobManager Service}
     \umlVHVassemblyconnector[interface={6121{,} 6122{,} 9250}, with port]{TaskManager Pod}{TaskManager Service}
   \end{tikzpicture}
-  \caption{UML component diagram of the system, as deployed on MiniShift. Yellow
-  components are OpenShift manifestos, while red components represent files
-  (either Java classes or YAML configuration files). Network connections are
-  shown with ports and have port numbers (or application-layer protocol names)
-  displayed.}
+  \caption{UML component diagram of the system. Yellow components are OpenShift
+    manifestos, red components represent files (either Java classes or YAML
+    configuration files), and cyan components are for everything else
+    (components set up without explicit manifestos, etc.). Network connections
+    are shown with ports and have port numbers (or application-layer protocol
+    names) displayed.}
   \label{fig:uml}
 \end{figure}
 
@@ -314,25 +324,26 @@ workload:
 \begin{figure}
   \centering
 \begin{lstlisting}[escapeinside={(*}{*)}]
-- cpuTime: 5000 # in (*\si{\milli\second}*)
+- cpuTime: 5000    # in (*\si{\milli\second}*)
   memoryUsage: 100 # in (*\si{\mebi\byte}*)
-  outputSize: 1 # in (*\si{\kibi\byte}*)
+  outputSize: 1    # in (*\si{\kibi\byte}*)
 - cpuTime: 5000
   memoryUsage: 200
   outputSize: 1
 \end{lstlisting}
   \caption{Example \texttt{components.yaml}, defining a list of components and
-    their resource requirements}
+    their resource usage}
   \label{fig:components}
 \end{figure}
 
+% TODO: information about DAGs should go somewhere here
 \subsection{What Happens During Execution} \label{sec:execution}
 
 We illustrate some aspects of the execution and how different components
 communicate with each other in Figure~\ref{fig:communication}. After the Flink
 app (called Benchmarker) is initialised, it immediately establishes the control
 server as a \texttt{socketTextStream}, i.e., the initial source of data. It then
-constructs a chain of mappers as described in \texttt{components.yaml}.
+constructs the DAG of components as described in \texttt{components.yaml}.
 
 The control server periodically sends messages to Benchmarker (as defined in
 \texttt{global.yaml}). Each component (mapper) does three things upon receiving
@@ -1214,8 +1225,8 @@ everything run in zero time.
 So far, our implementation only supports having a list of components where
 each component takes its input from its predecessor and produces output for its
 successor (see Figure~\ref{fig:before_topology} for an example). In this
-section, we introduce support for configurations of components expressed as any
-directed acyclic graph (DAG).
+section, we introduce support for configurations of components expressed as a
+DAG.
 
 An example component topology can be seen in Figure~\ref{fig:after_topology}.
 Here, the control server sends its messages to Components 1 and 2. After
