@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage{amssymb}
 \usepackage{booktabs}
+\usepackage{fancybox}
 \usepackage[T1]{fontenc}
 \usepackage{mathtools}
 \usepackage[UKenglish]{babel}
@@ -9,6 +10,7 @@
 \usepackage{fullpage}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{pifont}
 \usepackage{subcaption}
@@ -76,6 +78,12 @@
    showtabs=false,
    captionpos=b
 }
+
+\makeatletter
+\newenvironment{CenteredBox}{%
+\begin{Sbox}}{% Save the content in a box
+\end{Sbox}\centerline{\parbox{\wd\@Sbox}{\TheSbox}}}% And output it centered
+\makeatother
 
 \begin{document}
 \maketitle
@@ -176,9 +184,10 @@ described by the manifestos.
 % deployment of configuration files
 Configuration Files component in Figure~\ref{fig:uml} represents a
 \texttt{ConfigMap} OpenShift entity created using the \texttt{oc} command that
-contains two configuration files: \texttt{global.yaml} and
-\texttt{components.yaml} (see Figures \ref{fig:global} and \ref{fig:components}
-for examples). The former contains some basic networking information such as
+contains two configuration files: \texttt{components.yaml} and
+\texttt{global.yaml}. The former will be described in
+Section~\ref{sec:components}, while the latter (example of which is in
+Figure~\ref{fig:global}) contains some basic networking information such as
 hostnames and port numbers as well as:
 \begin{description}
 \item[\texttt{prometheusUsesHttps}:] a Boolean variable indicating whether
@@ -208,11 +217,6 @@ hostnames and port numbers as well as:
     at a time.
   \end{description}
 \end{description}
-
-The \texttt{components.yaml} configuration
-file, on the other hand, describes a sequence of processing stages (maps), each
-with its own CPU usage time, memory usage, and output data size (i.e., the
-amount of data passed to the next stage).
 
 % MiniShift Prometheus setup
 Lastly, it is worth mentioning that the Prometheus add-on for
@@ -321,29 +325,117 @@ workload:
   \label{fig:global}
 \end{figure}
 
+\subsection{Components: Syntax, Topological Semantics, and Other
+  Properties} \label{sec:components}
+
+The \texttt{components.yaml} configuration file (see Figure~\ref{fig:components}
+for an example) describes a list of processing stages (maps), each with its own
+CPU usage time, memory usage, and output data size (i.e., the amount of data
+passed to the next stage). They can be arranged as any DAG.
+
+A more complicated arrangement of components can be seen in
+Figure~\ref{fig:after_topology}. Here, the control server sends its messages to
+Components 1 and 2. After receiving a message, each component performs its work
+simulation (as defined in the configuration file) and forwards the message to
+Component~3. The experiment is complete once Component~3 finishes processing its
+last message.
+
+The topological structure is defined using the \texttt{parents} field which is
+used to list all parent (input) nodes in the graph structure.
+Figure~\ref{fig:topology_implementation} shows how the graph from
+Figure~\ref{fig:after_topology} can be defined. The control server is always
+denoted by the number zero, while each component is assigned a number based on
+its place in the configuration file. Thus, the configuration file defines that
+Components 1 and 2 both have a single source of data, namely the control server,
+while Component~3 has Components 1 and 2 as its parents (i.e., sources, inputs,
+etc.). The rest of the configuration file is of the same form as in
+Figure~\ref{fig:components}. In order to avoid infinite cycles (and to make the
+implementation slightly simpler and nicer), we impose a restriction that
+Component~$i$ (i.e., the $i$'th component as defined in
+\texttt{components.yaml}) can only mention Component~$j$ as one of its
+\texttt{parents} if $j < i$. This design choice prohibits cycles and loops,
+while remaining flexible enough to define any DAG.
+
 \begin{figure}
   \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \begin{CenteredBox}
 \begin{lstlisting}[escapeinside={(*}{*)}]
-- cpuTime: 5000    # in (*\si{\milli\second}*)
+- parents:
+    - 0
+  cpuTime: 5000    # in (*\si{\milli\second}*)
   memoryUsage: 100 # in (*\si{\mebi\byte}*)
   outputSize: 1    # in (*\si{\kibi\byte}*)
-- cpuTime: 5000
+- parents:
+    - 1
+  cpuTime: 5000
   memoryUsage: 200
   outputSize: 1
 \end{lstlisting}
-  \caption{Example \texttt{components.yaml}, defining a list of components and
-    their resource usage}
-  \label{fig:components}
+    \end{CenteredBox}
+    \caption{an example of a full \texttt{components.yaml} file}
+    \label{fig:components}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \begin{tikzpicture}[component/.style={draw,circle,fill}]
+      \node[draw,circle,label=right:{Control Server}] at (0, 0) (controlServer) {};
+      \node[component,label=right:{Component 1}] at (0, -1) (component1) {};
+      \node[component,label=right:{Component 2}] at (0, -2) (component2) {};
+      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component1);
+      \draw[-{Stealth[length=2mm]}] (component1) -- (component2);
+    \end{tikzpicture}
+    \caption{the topological structure of Figure~\ref{fig:components}}
+    \label{fig:before_topology}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \begin{CenteredBox}
+\begin{lstlisting}[escapechar=!]
+- parents:
+    - 0
+  !\textcolor{verydarkgray}{<...>}!
+- parents:
+    - 0
+  !\textcolor{verydarkgray}{<...>}!
+- parents:
+    - 1
+    - 2
+  !\textcolor{verydarkgray}{<...>}!
+\end{lstlisting}
+      \end{CenteredBox}
+    \caption{changes necessary to define more complex topology}
+    \label{fig:topology_implementation}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \begin{tikzpicture}[component/.style={draw, circle, fill}]
+      \node[draw,circle,label=above:{Control Server}] at (0, 0) (controlServer) {};
+      \node[component,label=left:{Component 1}] at (-1, -1) (component1) {};
+      \node[component,label=right:{Component 2}] at (1, -1) (component2) {};
+      \node[component,label=below:{Component 3}] at (0, -2) (component3) {};
+      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component1);
+      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component2);
+      \draw[-{Stealth[length=2mm]}] (component1) -- (component3);
+      \draw[-{Stealth[length=2mm]}] (component2) -- (component3);
+    \end{tikzpicture}
+    \caption{the topological structure of
+      Figure~\ref{fig:topology_implementation}}
+    \label{fig:after_topology}
+  \end{subfigure}
+  \caption{Component configuration files and their induced topologies}
 \end{figure}
 
-% TODO: information about DAGs should go somewhere here
 \subsection{What Happens During Execution} \label{sec:execution}
 
 We illustrate some aspects of the execution and how different components
-communicate with each other in Figure~\ref{fig:communication}. After the Flink
-app (called Benchmarker) is initialised, it immediately establishes the control
-server as a \texttt{socketTextStream}, i.e., the initial source of data. It then
-constructs the DAG of components as described in \texttt{components.yaml}.
+communicate with each other in Figure~\ref{fig:communication}. A sequence of
+experiments begins with the initialisation of the start pod. At the start of
+each experiment, the Flink app inside the start pod (called Benchmarker)
+establishes the control server as a \texttt{socketTextStream}, i.e., the initial
+source of data. It then constructs the DAG of components as described in
+\texttt{components.yaml}.
 
 The control server periodically sends messages to Benchmarker (as defined in
 \texttt{global.yaml}). Each component (mapper) does three things upon receiving
@@ -368,12 +460,14 @@ then rounded up to an integer number of minutes and used to retrieve performance
 data for the time interval when the application was running.
 
 Finally, for each metric defined in the global configuration file, the control
-server establishes an HTTPS connection to Prometheus, collects JSON data
+server establishes a connection to Prometheus, collects JSON data
 recording the values of that metric in the last few minutes (as calculated
-previously), and writes the data to a file (separate for each metric) on the
-persistent volume. The files can then be transported to a local directory by
-using MiniShift SSH to copy them over to MiniShift host folder, which places
-them into a local directory on the host machine. A Python script was written to
+previously), and writes the data to a file (separate for each metric and
+experiment) on the persistent volume. The files can then be transported to a
+local directory by using MiniShift\footnote{Due to technical issues, an
+  alternative to this step was not developed for deployment on OpenShift
+  clusters.} SSH to copy them over to MiniShift host folder, which places them
+into a local directory on the host machine. A Python script was written to
 automate deploying the system, waiting for the control server to terminate, and
 moving the files as described.
 
@@ -385,19 +479,22 @@ moving the files as described.
       \umlobject[no ddots]{ControlServer}
       \umlobject[no ddots]{Prometheus}
       \umldatabase[no ddots]{PersistentVolume}
-      \begin{umlcall}[op={initialise stream}]{Benchmarker}{ControlServer}
-        \begin{umlfragment}[type=loop, label={$\forall$ messages}, inner xsep=7]
-          \begin{umlcall}[op={message}, type=return]{ControlServer}{Benchmarker}
+      \begin{umlfragment}[type=loop, label={$\forall$ experiments}, inner ysep=2]
+        \umlsdnode[dt=3]{Benchmarker}
+        \begin{umlcall}[op={initialise stream}]{Benchmarker}{ControlServer}
+          \begin{umlfragment}[type=loop, label={$\forall$ messages}, inner xsep=7]
+            \begin{umlcall}[op={message}, type=return]{ControlServer}{Benchmarker}
+            \end{umlcall}
+          \end{umlfragment}
+        \end{umlcall}
+        \begin{umlcall}[op={runtime}, type=return]{Benchmarker}{ControlServer}
+        \end{umlcall}
+        \begin{umlfragment}[type=loop, label={$\forall$ metrics}, inner xsep=6]
+          \begin{umlcall}[op={query}, return={metric}]{ControlServer}{Prometheus}
+          \end{umlcall}
+          \begin{umlcall}[op={metric}]{ControlServer}{PersistentVolume}
           \end{umlcall}
         \end{umlfragment}
-      \end{umlcall}
-      \begin{umlcall}[op={runtime}, type=return]{Benchmarker}{ControlServer}
-      \end{umlcall}
-      \begin{umlfragment}[type=loop, label={$\forall$ metrics}, inner xsep=6]
-        \begin{umlcall}[op={query}, return={metric}]{ControlServer}{Prometheus}
-        \end{umlcall}
-        \begin{umlcall}[op={metric}]{ControlServer}{PersistentVolume}
-        \end{umlcall}
       \end{umlfragment}
     \end{umlseqdiag}
   \end{tikzpicture}
@@ -421,8 +518,9 @@ Set Size metric. Each experiment was repeated three times, and median values
 were taken.
 
 We seek to know the average amount of memory used by a single character of a
-Java string. Knowing that a byte on an array takes up exactly one byte allows us
-to reformulate the problem to a simple linear regression shown in
+Java string. Knowing that a single element of a byte array takes up exactly one
+byte\footnote{This assumption was empirically confirmed in later experiments.}
+allows us to reformulate the problem to a simple linear regression shown in
 Figure~\ref{fig:regression1}. The model shows that overall memory usage can be
 expressed as
 \begin{equation} \label{eq:regression}
@@ -432,37 +530,39 @@ expressed as
 contradicting the common wisdom that a character uses approximately two bytes of
 memory \cite{java_memory}.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/prediction2.png}
-  \caption{A log-log plot comparing the number of characters in a string and the
-  observed memory unaccounted by the array. In each column, separate points
-  correspond to different array sizes. The curve is a best-fit linear regression
-  line.}
-  \label{fig:regression1}
-\end{figure}
-
 Figure~\ref{fig:regression2} presents a more detailed view, but suggests
 the same conclusion. While the predictions seem to consistently overestimate
 memory consumption for short strings and similarly underestimate it for longer
 strings, adding a quadratic term is not enough to remove the bias in errors, and
-the errors are sufficiently small (see Section~\ref{sec:after_adjustments} for
-more details).
+the errors are sufficiently small.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/prediction1.png}
-  \caption{A log-log plot showing memory consumption across a range of array
-    sizes, with different string sizes represented by different colours. For
-    each string size, we also draw a regression line in the corresponding
-    colour.}
-  \label{fig:regression2}
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../local_experiments/memory_tests/prediction2.png}
+    \captionof{figure}{A log-log plot comparing the number of characters in a string and the
+      observed memory unaccounted by the array. In each column, separate points
+      correspond to different array sizes (plotted with jitter). The blue curve is a
+      best-fit linear regression line, and the shaded area marks one standard
+      error.}
+    \label{fig:regression1}
+  \end{minipage}\hfill%
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../local_experiments/memory_tests/prediction1.png}
+    \captionof{figure}{A log-log plot showing memory consumption across a range of array
+      sizes, with different string sizes represented by different colours. For
+      each string size, we also draw a regression line in the corresponding
+      colour.}
+    \label{fig:regression2}
+  \end{minipage}
 \end{figure}
 
-\subsection{Adjusted Performance} \label{sec:after_adjustments}
+\paragraph{Adjusted Performance}
 
 We can use the two numerical parameters in Equation~\eqref{eq:regression} to
-adjust our map class in order to ensure that it uses the correct amount
+adjust our component class in order to ensure that it uses the right amount
 of memory. We run a similar set of experiments as before, except replacing array
 size with expected memory usage as one of our independent variables (the other
 being string size). Memory usage is set to four different values: 64, 128,
@@ -475,7 +575,7 @@ Figure~\ref{fig:adjustment}. Note that the largest error is smaller than
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../local_experiments/memory_tests/adjusted.png}
+  \includegraphics[width=0.5\textwidth]{../local_experiments/memory_tests/adjusted.png}
   \caption{A heat map of errors (in \si{\kibi\byte})}
   \label{fig:adjustment}
 \end{figure}
@@ -493,7 +593,7 @@ to a single component and record CPU and memory consumption at \SI{1}{\second}
 intervals using Prometheus. Each \texttt{memoryUsage} and \texttt{outputSize}
 configuration is written into \texttt{components.yaml} and run three times. With
 each run, we recreate all OpenShift components (pods, services, etc.), wait for
-the control server to terminate, and retrieve the generated JSON files.
+the start pod to terminate, and retrieve the generated JSON files.
 
 Figure~\ref{fig:cpu_experiment} shows CPU usage across all runs. Even
 though our standalone Java application easily reaches 100\% CPU usage, when
@@ -524,7 +624,7 @@ number: maximum values are almost always higher than the expected result, while
 means are likely to be distorted by the initial several seconds of low memory
 usage as well as observed dips in memory usage later in the execution.
 
-Note that individual runs can be summarised as follows:
+Note that each individual run can be summarised as follows:
 \begin{enumerate}
 \item Memory usage starts low.
 \item It rises two times.
@@ -533,7 +633,6 @@ Note that individual runs can be summarised as follows:
 \item Memory usage stays constant for a while.
 \item The process terminates.
 \end{enumerate}
-
 We can easily explain this pattern. The first increase is caused by the array
 allocation, while the second one is the result of constructing the output
 string. The drop in memory usage happens when the array is deallocated
@@ -599,102 +698,11 @@ experiment.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{../plots/relative_median_errors.png}
+  \includegraphics[width=0.5\textwidth]{../plots/relative_median_errors.png}
   \caption{Relative median memory usage errors, as predicted by the maximum
     memory usage across execution}
   \label{fig:relative_errors}
 \end{figure}
-
-\section{Example Applications}
-
-\paragraph{A Simple Website}
-
-\begin{table}
-  \centering
-  \caption{Performance statistics of the top 100 e-commerce websites}
-  \begin{tabular}{l c c c}
-    \toprule
-    Metric & min & mean & max \\
-    \midrule
-    Page load time (\si{\second}) & \tablenum{0.468} & \tablenum{2.67} & \tablenum{9.67} \\
-    Page size (\si{\mebi\byte}) & \tablenum{0.719} & \tablenum{3.03} & \tablenum{14.21} \\
-    Number of requests made per load & \num{45} & \num{192} & \num{660} \\
-    \bottomrule
-  \end{tabular}
-  \label{tbl:web}
-\end{table}
-
-In order to simulate a website, we need some data about the performance metrics
-of a typical website. We extract the data in Table~\ref{tbl:web} from
-experiments run on popular websites \cite{web_performance}. Thus, we can
-simulate an average website with a single component by making the following
-modelling assumptions:
-\begin{itemize}
-\item $\texttt{cpuTime} = \frac{\text{page load time}}{\text{number of requests
-      per load}} = \frac{\SI{2.67}{\second}}{192} \approx \SI{0.014}{\second}$;
-\item \texttt{memoryUsage} is minimal, i.e., the smallest amount necessary to
-  construct the output string;
-\item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
-      per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
-\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
-\end{itemize}
-
-\paragraph{A Machine Learning System}
-
-For a realistic model of a machine learning (ML) system, we measured a
-classification system used to construct algorithm portfolios (akin to
-\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package
-\texttt{llama} \cite{kotthoff_llama_2013} and run on a thousand maximum common
-subgraph problems and three algorithms. The resulting performance metrics are
-displayed in Figure~\ref{fig:ml_diagram}, with each component's
-\texttt{outputSize} positioned next to its outgoing arrow. Sending a single
-message, then, corresponds to selecting a subset of data, generating features,
-and training an ML model. Note that the last two parameters define each
-component's I/O (i.e., file-reading) properties and can be easily ignored
-(otherwise, see Section~\ref{sec:io} for more details). Other I/O-related
-parameters are assumed to be big enough (or small enough) so that their exact
-values are irrelevant to the performance of the system.
-
-\setlength{\tabcolsep}{3pt}
-\begin{figure}
-  \centering
-  \begin{tikzpicture}[component/.style={draw, text width=4cm, align=center}]
-    \node[component] at (0, 0) (filtering) {
-      \textbf{Data Filtering}\\
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{170}{\milli\second}\\
-        \texttt{memoryUsage}: & \SI{52}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{1}\\
-        \texttt{responseSize}: & \SI{10}{\mebi\byte}
-      \end{tabular}
-    };
-    \node[component] at (6, 0) (features) {
-      \textbf{Feature Generation}\\
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{12}{\minute}\\
-        \texttt{memoryUsage}: & \SI{60}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{2000}\\
-        \texttt{responseSize}: & \SI{2}{\kibi\byte}
-      \end{tabular}
-    };
-    \node[component] at (12, 0) (learning) {
-      \textbf{Learning}
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{90}{\second}\\
-        \texttt{memoryUsage}: & \SI{664}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{21}\\
-        \texttt{responseSize}: & \SI{9.5}{\mebi\byte}
-      \end{tabular}
-    };
-    \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
-    \draw[-{Latex[length=2mm]}] (features) -- node[below] {\SI{500}{\kibi\byte}} (learning);
-    \draw[-{Latex[length=2mm]}] (learning) -- node[left] {\SI{20}{\mebi\byte}} (12, -2);
-  \end{tikzpicture}
-  \caption{A model for a machine learning system, displaying typical resource
-    usage metrics}
-  \label{fig:ml_diagram}
-\end{figure}
-\setlength{\tabcolsep}{6pt}
 
 \section{Input/Output Simulation} \label{sec:io}
 
@@ -834,12 +842,12 @@ list uses 61.94 bytes.
 
 While relative errors vary from $-38\%$ to $39\%$, $88\%$ of them are within
 $\pm10\%$ (see density plots in Figure~\ref{fig:prediction_density}).
-Figure~\ref{fig:prediction_errors} clearly shows the number of nodes to be the
+Figure~\ref{fig:predictions} clearly shows the number of nodes to be the
 troublesome variable: relative errors are at their worst with the number of
 nodes being around one million. Furthermore, as can be seen in
 Figure~\ref{fig:prediction_error_b}, high (non-relative) errors only occur when
 the number of nodes parameter is at its highest. Using
-Figure~\ref{fig:prediction_violins} we can infer how the model functions under
+Figure~\ref{fig:predictions} we can also infer how the model functions under
 different values of the independent variables. To begin with, errors are stable
 throughout most of the string length values, except for the last few. For array
 size, we can see that the linearity assumption starts to break down towards the
@@ -878,30 +886,25 @@ become primarily positive just like in Figure~\ref{fig:prediction_violin_b}.
     \caption{errors}
     \label{fig:prediction_error_b}
   \end{subfigure}
-  \caption{Prediction errors across all experiments}
-  \label{fig:prediction_errors}
-\end{figure}
-
-\begin{figure}
-  \centering
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
     \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_array_size.png}
-    \caption{array size}
+    \caption{errors vs. array size}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
     \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_string_length.png}
-    \caption{string length}
+    \caption{errors vs. string length}
     \label{fig:prediction_violin_b}
   \end{subfigure}
   \begin{subfigure}[t]{0.49\textwidth}
     \centering
     \includegraphics[width=\textwidth]{../local_experiments/io_memory_tests/plots/prediction_violin_num_nodes.png}
-    \caption{number of nodes}
+    \caption{errors vs. number of nodes}
   \end{subfigure}
-  \caption{Violin plots of errors against the three independent variables}
-  \label{fig:prediction_violins}
+  \caption{Prediction errors across all experiments and violin plots of errors
+    against the three independent variables}
+  \label{fig:predictions}
 \end{figure}
 
 \paragraph{Putting the estimates back into action}
@@ -1023,6 +1026,96 @@ time than the entire process is supposed to take, with errors ranging from
 simulating slow memory buildup becomes less relevant when considering transfer
 speeds of around \SI[per-mode=symbol]{1}{\gibi\bit\per\second} or more, we
 conclude that the algorithm is sufficiently accurate.
+
+\section{Example Applications}
+
+\paragraph{A Simple Website}
+
+\begin{table}
+  \centering
+  \caption{Performance statistics of the top 100 e-commerce websites}
+  \begin{tabular}{l c c c}
+    \toprule
+    Metric & min & mean & max \\
+    \midrule
+    Page load time (\si{\second}) & \tablenum{0.468} & \tablenum{2.67} & \tablenum{9.67} \\
+    Page size (\si{\mebi\byte}) & \tablenum{0.719} & \tablenum{3.03} & \tablenum{14.21} \\
+    Number of requests made per load & \num{45} & \num{192} & \num{660} \\
+    \bottomrule
+  \end{tabular}
+  \label{tbl:web}
+\end{table}
+
+In order to simulate a website, we need some data about the performance metrics
+of a typical website. We extract the data in Table~\ref{tbl:web} from
+experiments run on popular websites \cite{web_performance}. Thus, we can
+simulate an average website with a single component by making the following
+modelling assumptions:
+\begin{itemize}
+\item $\texttt{cpuTime} = \frac{\text{page load time}}{\text{number of requests
+      per load}} = \frac{\SI{2.67}{\second}}{192} \approx \SI{0.014}{\second}$;
+\item \texttt{memoryUsage} is minimal, i.e., the smallest amount necessary to
+  construct the output string;
+\item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
+      per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
+\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
+\end{itemize}
+
+\paragraph{A Machine Learning System}
+
+For a realistic model of a machine learning (ML) system, we measured a
+classification system used to construct algorithm portfolios (akin to
+\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package
+\texttt{llama} \cite{kotthoff_llama_2013} and run on a thousand maximum common
+subgraph problems and three algorithms. The resulting performance metrics are
+displayed in Figure~\ref{fig:ml_diagram}, with each component's
+\texttt{outputSize} positioned next to its outgoing arrow. Sending a single
+message, then, corresponds to selecting a subset of data, generating features,
+and training an ML model. Note that the last two parameters define each
+component's I/O (i.e., file-reading) properties and can be easily ignored. Other
+I/O-related parameters are assumed to be big enough (or small enough) so that
+their exact values are irrelevant to the performance of the system.
+
+\setlength{\tabcolsep}{3pt}
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[component/.style={draw, text width=4cm, align=center}]
+    \node[component] at (0, 0) (filtering) {
+      \textbf{Data Filtering}\\
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{170}{\milli\second}\\
+        \texttt{memoryUsage}: & \SI{52}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{1}\\
+        \texttt{responseSize}: & \SI{10}{\mebi\byte}
+      \end{tabular}
+    };
+    \node[component] at (6, 0) (features) {
+      \textbf{Feature Generation}\\
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{12}{\minute}\\
+        \texttt{memoryUsage}: & \SI{60}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{2000}\\
+        \texttt{responseSize}: & \SI{2}{\kibi\byte}
+      \end{tabular}
+    };
+    \node[component] at (12, 0) (learning) {
+      \textbf{Learning}
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{90}{\second}\\
+        \texttt{memoryUsage}: & \SI{664}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{21}\\
+        \texttt{responseSize}: & \SI{9.5}{\mebi\byte}
+      \end{tabular}
+    };
+    \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
+    \draw[-{Latex[length=2mm]}] (features) -- node[below] {\SI{500}{\kibi\byte}} (learning);
+    \draw[-{Latex[length=2mm]}] (learning) -- node[left] {\SI{20}{\mebi\byte}} (12, -2);
+  \end{tikzpicture}
+  \caption{A model for a machine learning system, displaying typical resource
+    usage metrics}
+  \label{fig:ml_diagram}
+\end{figure}
+\setlength{\tabcolsep}{6pt}
 
 \section{Generating Various Usage Patterns}
 
@@ -1220,90 +1313,9 @@ everything run in zero time.
   \label{fig:frechet_fit}
 \end{figure}
 
-\section{Complex Component Topologies}
-
-So far, our implementation only supports having a list of components where
-each component takes its input from its predecessor and produces output for its
-successor (see Figure~\ref{fig:before_topology} for an example). In this
-section, we introduce support for configurations of components expressed as a
-DAG.
-
-An example component topology can be seen in Figure~\ref{fig:after_topology}.
-Here, the control server sends its messages to Components 1 and 2. After
-receiving a message, each component
-performs its work simulation (as defined in \texttt{components.yaml}) and
-forwards the message to Component~3. The experiment is complete once Component~3
-finishes processing its last message.
-
-In order to implement this, we extend the syntax of \texttt{components.yaml} to
-include an extra field for each component called \texttt{parents} representing a
-list of parent nodes in the graph structure.
-Figure~\ref{fig:topology_implementation} shows how our example DAG can be
-defined using this new field. The control server is always denoted by the number
-zero, while each component is assigned a number based on its place in the
-configuration file. Thus, the configuration file defines that Components 1 and 2
-both have a single source of data, namely the control server, while Component~3
-has Components 1 and 2 as its parents (i.e., sources, inputs, etc.). The rest of
-the configuration file is omitted for brevity. In order to avoid infinite cycles
-(and to make the implementation slightly simpler and nicer), we impose a
-restriction that Component~$i$ (i.e., the $i$'th component as defined in
-\texttt{components.yaml}) can only mention Component~$j$ as one of its
-\texttt{parents} if $j < i$. This design choice prohibits cycles and loops,
-while remaining flexible enough to define any DAG.
-
-\begin{figure}
-  \centering
-  \begin{subfigure}[b]{0.32\textwidth}
-    \centering
-    \begin{tikzpicture}[component/.style={draw,circle,fill}]
-      \node[draw,circle,label=right:{Control Server}] at (0, 0) (controlServer) {};
-      \node[component,label=right:{Component 1}] at (0, -1) (component1) {};
-      \node[component,label=right:{Component 2}] at (0, -2) (component2) {};
-      \node[component,label=right:{Component 3}] at (0, -3) (component3) {};
-      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component1);
-      \draw[-{Stealth[length=2mm]}] (component1) -- (component2);
-      \draw[-{Stealth[length=2mm]}] (component2) -- (component3);
-    \end{tikzpicture}
-    \caption{the topological structure imposed by the previous implementation}
-    \label{fig:before_topology}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.49\textwidth}
-    \centering
-    \begin{tikzpicture}[component/.style={draw, circle, fill}]
-      \node[draw,circle,label=above:{Control Server}] at (0, 0) (controlServer) {};
-      \node[component,label=left:{Component 1}] at (-1, -1) (component1) {};
-      \node[component,label=right:{Component 2}] at (1, -1) (component2) {};
-      \node[component,label=below:{Component 3}] at (0, -2) (component3) {};
-      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component1);
-      \draw[-{Stealth[length=2mm]}] (controlServer) -- (component2);
-      \draw[-{Stealth[length=2mm]}] (component1) -- (component3);
-      \draw[-{Stealth[length=2mm]}] (component2) -- (component3);
-    \end{tikzpicture}
-    \caption{an example of a DAG of components supported by the current
-      implementation}
-    \label{fig:after_topology}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.16\textwidth}
-    \centering
-\begin{lstlisting}[escapechar=!]
-- parents:
-    - 0
-  !\textcolor{verydarkgray}{<...>}!
-- parents:
-    - 0
-  !\textcolor{verydarkgray}{<...>}!
-- parents:
-    - 1
-    - 2
-  !\textcolor{verydarkgray}{<...>}!
-\end{lstlisting}
-    \caption{syntax for defining this DAG}
-    \label{fig:topology_implementation}
-  \end{subfigure}
-  \caption{The topology of components: before and now}
-\end{figure}
 
 \section{Conclusions and Future Work}
+% TODO: cover what needs to be done regarding OpenShift
 
 \begin{itemize}
 \item Measuring end-to-end latency using RabbitMQ
