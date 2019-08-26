@@ -88,9 +88,6 @@
 \begin{document}
 \maketitle
 
-%\begin{abstract}
-%\end{abstract}
-
 \section{Introduction}
 
 Before an application is deployed to a cloud, one needs to allocate resources
@@ -117,9 +114,35 @@ The entire simulation system is packaged into several Docker containers and can
 be deployed on either an OpenShift cluster or a local MiniShift setup.
 Performance metrics are recorded using Prometheus, which can be managed
 separately or deployed together with the rest of the system.
-% TODO: outline the rest of the paper (fixing its structure as necessary)
 
-\section{Architecture and Implementation}
+We begin with Section~\ref{sec:implementation} which describes the core of the
+system, including implementation-level decisions, configuration options, and
+deployment. In Section~\ref{sec:adjustments} we explain how the performance
+characteristics of the system were adjusted based on experimental data in order
+to ensure that we can accurately specify the desired amount of memory usage. In
+Section~\ref{sec:experiments} we describe a set of experiments on MiniShift,
+investigating how the performance of the system changes when put on a (local)
+cluster setup. Afterwards, Section~\ref{sec:example_applications} presents two
+real-life distributed applications and considers how they can be modelled using
+our system.
+
+Sections \ref{sec:io} and \ref{sec:usage_patterns} then introduce two
+extensions to the system. The former tackles input/output (I/O) simulation---a
+feature  that can simulate gradually increasing memory usage, as if receiving a
+file from a slow network connection. The latter section introduces a new feature
+that allows us to model how the application is being used in a very flexible
+way. That is, instead of simulating a user loading a web page every $n$ seconds, we
+can express periodicity (e.g., users who are more active during the day than at
+night), overall usage increase/decline (e.g., a website becoming more popular),
+spikes in usage (e.g., when an important event happens), etc.
+
+Finally, Section~\ref{sec:validation} presents statistical
+tests for evaluating whether experimental data corresponds to our expectations
+(or perhaps the system could benefit from more resources), and
+Section~\ref{sec:conclusions} ends with some observations on what remains to be
+done in the future.
+
+\section{Architecture and Implementation} \label{sec:implementation}
 
 In this section we describe implementation details of the system at its current
 state. During the first stage of the project, the system was deployed and tested
@@ -704,11 +727,101 @@ experiment.
   \label{fig:relative_errors}
 \end{figure}
 
+\section{Example Applications} \label{sec:example_applications}
+
+\paragraph{A Simple Website}
+
+\begin{table}
+  \centering
+  \caption{Performance statistics of the top 100 e-commerce websites}
+  \begin{tabular}{l c c c}
+    \toprule
+    Metric & min & mean & max \\
+    \midrule
+    Page load time (\si{\second}) & \tablenum{0.468} & \tablenum{2.67} & \tablenum{9.67} \\
+    Page size (\si{\mebi\byte}) & \tablenum{0.719} & \tablenum{3.03} & \tablenum{14.21} \\
+    Number of requests made per load & \num{45} & \num{192} & \num{660} \\
+    \bottomrule
+  \end{tabular}
+  \label{tbl:web}
+\end{table}
+
+In order to simulate a website, we need some data about the performance metrics
+of a typical website. We extract the data in Table~\ref{tbl:web} from
+experiments run on popular websites \cite{web_performance}. Thus, we can
+simulate an average website with a single component by making the following
+modelling assumptions:
+\begin{itemize}
+\item $\texttt{cpuTime} = \frac{\text{page load time}}{\text{number of requests
+      per load}} = \frac{\SI{2.67}{\second}}{192} \approx \SI{0.014}{\second}$;
+\item \texttt{memoryUsage} is minimal, i.e., the smallest amount necessary to
+  construct the output string;
+\item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
+      per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
+\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
+\end{itemize}
+
+\paragraph{A Machine Learning System}
+
+For a realistic model of a machine learning (ML) system, we measured a
+classification system used to construct algorithm portfolios (akin to
+\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package
+\texttt{llama} \cite{kotthoff_llama_2013} and run on a thousand maximum common
+subgraph problems and three algorithms. The resulting performance metrics are
+displayed in Figure~\ref{fig:ml_diagram}, with each component's
+\texttt{outputSize} positioned next to its outgoing arrow. Sending a single
+message, then, corresponds to selecting a subset of data, generating features,
+and training an ML model. Note that the last two parameters define each
+component's I/O (i.e., file-reading) properties and can be easily ignored
+(otherwise see Section~\ref{sec:io}). Other I/O-related parameters are assumed
+to be big enough (or small enough) so that their exact values are irrelevant to
+the performance of the system.
+
+\setlength{\tabcolsep}{3pt}
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[component/.style={draw, text width=4cm, align=center}]
+    \node[component] at (0, 0) (filtering) {
+      \textbf{Data Filtering}\\
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{170}{\milli\second}\\
+        \texttt{memoryUsage}: & \SI{52}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{1}\\
+        \texttt{responseSize}: & \SI{10}{\mebi\byte}
+      \end{tabular}
+    };
+    \node[component] at (6, 0) (features) {
+      \textbf{Feature Generation}\\
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{12}{\minute}\\
+        \texttt{memoryUsage}: & \SI{60}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{2000}\\
+        \texttt{responseSize}: & \SI{2}{\kibi\byte}
+      \end{tabular}
+    };
+    \node[component] at (12, 0) (learning) {
+      \textbf{Learning}
+      \begin{tabular}{r l}
+        \texttt{cpuTime}: & \SI{90}{\second}\\
+        \texttt{memoryUsage}: & \SI{664}{\mebi\byte}\\
+        \texttt{numRequests}: & \num{21}\\
+        \texttt{responseSize}: & \SI{9.5}{\mebi\byte}
+      \end{tabular}
+    };
+    \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
+    \draw[-{Latex[length=2mm]}] (features) -- node[below] {\SI{500}{\kibi\byte}} (learning);
+    \draw[-{Latex[length=2mm]}] (learning) -- node[left] {\SI{20}{\mebi\byte}} (12, -2);
+  \end{tikzpicture}
+  \caption{A model for a machine learning system, displaying typical resource
+    usage metrics}
+  \label{fig:ml_diagram}
+\end{figure}
+\setlength{\tabcolsep}{6pt}
+
 \section{Input/Output Simulation} \label{sec:io}
 
-In order to simulate input/output (I/O) interactions similar to accessing a
-database or reading a file, we introduce a number of new component-specific
-parameters:
+In order to simulate I/O interactions similar to accessing a database or reading
+a file, we introduce a number of new component-specific parameters:
 \begin{description}
 \item[$\texttt{ioMode} \in \{ \text{startup}, \text{regular}, \text{off} \}$]
   determines when to simulate I/O: during the initialisation stage, with every
@@ -1027,97 +1140,7 @@ simulating slow memory buildup becomes less relevant when considering transfer
 speeds of around \SI[per-mode=symbol]{1}{\gibi\bit\per\second} or more, we
 conclude that the algorithm is sufficiently accurate.
 
-\section{Example Applications}
-
-\paragraph{A Simple Website}
-
-\begin{table}
-  \centering
-  \caption{Performance statistics of the top 100 e-commerce websites}
-  \begin{tabular}{l c c c}
-    \toprule
-    Metric & min & mean & max \\
-    \midrule
-    Page load time (\si{\second}) & \tablenum{0.468} & \tablenum{2.67} & \tablenum{9.67} \\
-    Page size (\si{\mebi\byte}) & \tablenum{0.719} & \tablenum{3.03} & \tablenum{14.21} \\
-    Number of requests made per load & \num{45} & \num{192} & \num{660} \\
-    \bottomrule
-  \end{tabular}
-  \label{tbl:web}
-\end{table}
-
-In order to simulate a website, we need some data about the performance metrics
-of a typical website. We extract the data in Table~\ref{tbl:web} from
-experiments run on popular websites \cite{web_performance}. Thus, we can
-simulate an average website with a single component by making the following
-modelling assumptions:
-\begin{itemize}
-\item $\texttt{cpuTime} = \frac{\text{page load time}}{\text{number of requests
-      per load}} = \frac{\SI{2.67}{\second}}{192} \approx \SI{0.014}{\second}$;
-\item \texttt{memoryUsage} is minimal, i.e., the smallest amount necessary to
-  construct the output string;
-\item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
-      per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
-\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
-\end{itemize}
-
-\paragraph{A Machine Learning System}
-
-For a realistic model of a machine learning (ML) system, we measured a
-classification system used to construct algorithm portfolios (akin to
-\cite{DBLP:conf/lion/KotthoffMS16}) implemented using an R package
-\texttt{llama} \cite{kotthoff_llama_2013} and run on a thousand maximum common
-subgraph problems and three algorithms. The resulting performance metrics are
-displayed in Figure~\ref{fig:ml_diagram}, with each component's
-\texttt{outputSize} positioned next to its outgoing arrow. Sending a single
-message, then, corresponds to selecting a subset of data, generating features,
-and training an ML model. Note that the last two parameters define each
-component's I/O (i.e., file-reading) properties and can be easily ignored. Other
-I/O-related parameters are assumed to be big enough (or small enough) so that
-their exact values are irrelevant to the performance of the system.
-
-\setlength{\tabcolsep}{3pt}
-\begin{figure}
-  \centering
-  \begin{tikzpicture}[component/.style={draw, text width=4cm, align=center}]
-    \node[component] at (0, 0) (filtering) {
-      \textbf{Data Filtering}\\
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{170}{\milli\second}\\
-        \texttt{memoryUsage}: & \SI{52}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{1}\\
-        \texttt{responseSize}: & \SI{10}{\mebi\byte}
-      \end{tabular}
-    };
-    \node[component] at (6, 0) (features) {
-      \textbf{Feature Generation}\\
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{12}{\minute}\\
-        \texttt{memoryUsage}: & \SI{60}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{2000}\\
-        \texttt{responseSize}: & \SI{2}{\kibi\byte}
-      \end{tabular}
-    };
-    \node[component] at (12, 0) (learning) {
-      \textbf{Learning}
-      \begin{tabular}{r l}
-        \texttt{cpuTime}: & \SI{90}{\second}\\
-        \texttt{memoryUsage}: & \SI{664}{\mebi\byte}\\
-        \texttt{numRequests}: & \num{21}\\
-        \texttt{responseSize}: & \SI{9.5}{\mebi\byte}
-      \end{tabular}
-    };
-    \draw[-{Latex[length=2mm]}] (filtering) -- node[below] {\SI{52}{\kibi\byte}} (features);
-    \draw[-{Latex[length=2mm]}] (features) -- node[below] {\SI{500}{\kibi\byte}} (learning);
-    \draw[-{Latex[length=2mm]}] (learning) -- node[left] {\SI{20}{\mebi\byte}} (12, -2);
-  \end{tikzpicture}
-  \caption{A model for a machine learning system, displaying typical resource
-    usage metrics}
-  \label{fig:ml_diagram}
-\end{figure}
-\setlength{\tabcolsep}{6pt}
-
-\section{Generating Various Usage Patterns}
+\section{Generating Various Usage Patterns} \label{sec:usage_patterns}
 
 Hitherto the simulated user of the application was restricted to sending one or
 more messages at regular intervals. However, real usage patterns are often more
@@ -1176,7 +1199,7 @@ high---otherwise the simulation becomes inaccurate.
   \label{fig:functional_workload}
 \end{figure}
 
-\section{Validation}
+\section{Validation} \label{sec:validation}
 
 In this section we tackle the question: does the experimental data match our
 expectations? We have expectations for both memory and CPU usage. For memory,
@@ -1314,13 +1337,15 @@ everything run in zero time.
 \end{figure}
 
 
-\section{Conclusions and Future Work}
+\section{Conclusions and Future Work} \label{sec:conclusions}
 % TODO: cover what needs to be done regarding OpenShift
 
 \begin{itemize}
 \item Measuring end-to-end latency using RabbitMQ
 \item Support more total memory usage and memory usage during I/O simulation
-  using multiple arrays and linked lists
+  using multiple arrays and linked lists (not bothering with this now because I
+  don't want to add unnecessary complexity that may or may not be working
+  sufficiently well).
 \end{itemize}
 
 \bibliographystyle{abbrv}
