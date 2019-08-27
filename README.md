@@ -11,6 +11,12 @@ A tool to efficiently test cloud resource configurations for distributed applica
 4. `make clean` and `make up` are the basic commands to run an experiment.
     * If using MiniShift, `python experiment.py` is a more convenient way to run an experiment that also retrieves Prometheus data to a local directory. `python plot_experiment.py` can then be used to generate basic Matplotlib plots from that data (but see the R plotting code for more advanced plots).
 
+### (Known) Differences Between Running Experiments on MiniShift and OpenShift
+
+* `control-pod.yaml`: on MiniShift, `securityContext` must be configured as `privileged: true`. On OpenShift, simply comment out the two lines.
+* `Makefile`: on MiniShift, `control-pv.yaml` should be included in both `clean-all` and `up-all` commands. On OpenShift, you may or may not want to comment out the two lines, depending on if the system automatically serves persistent volumes or not.
+* `global.yaml`: on MiniShift, if using the Prometheus addon, set `prometheusUsesHttps` to true. On OpenShift, if using a Prometheus Docker image, set it to false.
+
 ## Directories and Files
 * `config`
   * `components.yaml`: a configuration file that lays out a chain of components and their resource usage (used automatically)
