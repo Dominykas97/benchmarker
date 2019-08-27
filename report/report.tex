@@ -90,6 +90,7 @@
 \makeatother
 
 \begin{document}
+
 \maketitle
 
 \section{Introduction}
@@ -831,15 +832,16 @@ the performance of the system.
 \section{Input/Output Simulation} \label{sec:io}
 
 In order to simulate I/O interactions similar to accessing a database or reading
-a file, we introduce a number of new component-specific parameters:
+a file, we introduce a number of new component-specific parameters, all under a
+parent parameter \texttt{io}:
 \begin{description}
-\item[$\texttt{ioMode} \in \{ \text{startup}, \text{regular}, \text{off} \}$]
+\item[$\texttt{mode} \in \{ \text{startup}, \text{regular}, \text{off} \}$]
   determines when to simulate I/O: during the initialisation stage, with every
   call to \texttt{map()}, or never.
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
 \item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
-\item[\texttt{ioLatency}] is the amount of time spent between a request
+\item[\texttt{latency}] is the amount of time spent between a request
   and receiving the first byte of the response (in \si{\milli\second}).
 \item[\texttt{bandwidth}] is the bandwidth for transferring the response (as the
   request is assumed to be small) (in
@@ -856,9 +858,9 @@ line~\ref{alg:main_sleep}. The function \texttt{mySleep} was added in order to
 ignore sleeping instructions for amounts of time smaller than
 \SI{15}{\milli\second} because most commonly-used operating systems have no
 support for this level of real-time behaviour control. We start by sleeping for
-\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{ioLatency}}{\milli\second}
+\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{latency}}{\milli\second}
 to simulate the first delay between sending the request and receiving the data;
-other \texttt{ioLatency} delays are incorporated into $s$ on
+other \texttt{latency} delays are incorporated into $s$ on
 line~\ref{alg:s_plus_latency}. For each request, we gradually build up a linked
 list $L$ until it uses about
 \SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{responseSize}}{\kibi\byte}
@@ -879,7 +881,7 @@ supposed to take $\frac{\texttt{responseSize}}{\texttt{bandwidth}}$ time, so we
 add the difference between the expectation and the reality to the amount of time
 the algorithm sleeps at the end of each iteration. If this is not the final
 iteration of the outer for loop, we also add \texttt{intervalbBetweenRequests}
-and \texttt{ioLatency} as well. The function of $s$ is to collect multiple
+and \texttt{latency} as well. The function of $s$ is to collect multiple
 reasons to sleep into a single call to \texttt{mySleep} as well as to take into
 account the amount of time it takes to build the linked list. If $s$ is negative
 or too small, we let it influence the simulation of the next request so that the
@@ -888,7 +890,7 @@ desired amount of time and reset $s$ back to zero.
 
 \begin{algorithm}
   \SetKwData{numRequests}{numRequests}
-  \SetKwData{ioLatency}{ioLatency}
+  \SetKwData{latency}{latency}
   \SetKwData{responseSize}{responseSize}
   \SetKwData{nodeSize}{NODE\_SIZE}
   \SetKwData{bandwidth}{bandwidth}
@@ -901,7 +903,7 @@ desired amount of time and reset $s$ back to zero.
   \SetKwProg{Function}{Function}{}{end}
   \tikzmk{A}$s \leftarrow 0$\;\tikzmk{B}
   \boxitthree{cyan}
-  \mySleep{\textcolor{red}{\ioLatency}}\;
+  \mySleep{\textcolor{red}{\latency}}\;
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
     $t_0 \leftarrow \time{}$\;
     \tikzmk{A}$L \leftarrow$ \new \LinkedList of 64-bit integers\;
@@ -916,7 +918,7 @@ desired amount of time and reset $s$ back to zero.
     t_0$\; \label{alg:subtract_time}
     \If{$i < \numRequests$}{
       $s \leftarrow s + \intervalBetweenRequests +
-      \ioLatency$\; \label{alg:s_plus_latency}
+      \latency$\; \label{alg:s_plus_latency}
     }
     \mySleep{\textcolor{red}{$s$}}\; \label{alg:main_sleep}
     \If{$s \ge \SI{15}{\milli\second}$}{
@@ -1120,7 +1122,7 @@ positive-to-negative trend in errors with respect to increasing
 If Algorithm~\ref{alg:io} is working as intended, total running time of the I/O
 simulation process should be
 \[
-  \texttt{numRequests} \times \left( \texttt{ioLatency} +
+  \texttt{numRequests} \times \left( \texttt{latency} +
   \frac{\texttt{responseSize}}{\texttt{bandwidth}} \right) +
 (\texttt{numRequests} - 1) \times \texttt{intervalBetweenRequests}.
 \]
@@ -1134,7 +1136,7 @@ values\footnote{Combinations of parameters resulting in high (above
 \begin{align*}
   \texttt{numRequests} &= 1, 2, 4, 8; \\
   \texttt{responseSize} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI{1000}{\mebi\byte}; \\
-  \texttt{ioLatency} &= 0, 100, \SI{1000}{\milli\second}; \\
+  \texttt{latency} &= 0, 100, \SI{1000}{\milli\second}; \\
   \texttt{bandwidth} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI[per-mode=symbol]{1000}{\mebi\bit\per\second}; \\
   \texttt{intervalBetweenRequests} &= 0, 100, \SI{1000}{\milli\second}.
 \end{align*}

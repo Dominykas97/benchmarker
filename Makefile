@@ -36,7 +36,7 @@ up-prom:
 
 clean-all:
 #	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
-	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pvc.yaml
+#	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pvc.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-service.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/taskmanager-service.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-service.yaml
@@ -44,8 +44,8 @@ clean-all:
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-pod.yaml
 
 up-all:
-	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
-	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pvc.yaml
+#	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
+#	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pvc.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pod.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/jobmanager-pod.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/control-service.yaml
