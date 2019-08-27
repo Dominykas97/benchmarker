@@ -1,14 +1,15 @@
 # Benchmarker
 A tool to efficiently test cloud resource configurations for distributed applications
 
-## Useful Commands
-* `make` recompiles Java code and uploads the latest versions of Docker images to Docker Hub
-* `make prom-mini-up` and `make prom-mini-clean` are used to control the Prometheus addon for MiniShift
-* `make clean-prom` and `make up-prom` do the same thing for OpenShift
-* `make clean-all` and `make up-all` should be used after making changes to pods that stay up between experimental runs
-* `make clean` and `make up` run an experiment, but if you want to see the output, consider using a Python script instead
-* `python experiment.py` runs a MiniShift experiment (or a series or experiments)
-* `python plot_experiment.py` generates Matplotlib plots from the data retrieved by `experiment.py`
+## How to Use
+
+1. After making changes to Java code, recompile it and reupload Docker images to Docker Hub using the `make` command.
+2. Set up Prometheus (and take it down) in one of two ways:
+    * `make prom-mini-up` and `make prom-mini-clean` if using the Prometheus addon for MiniShift,
+    * `make clean-prom` and `make up-prom` if using a Prometheus Docker image on an OpenShift cluster.
+3. `make clean-all` and `make up-all` commands should be used after making changes to the pods that normally stay up between experimental runs.
+4. `make clean` and `make up` are the basic commands to run an experiment.
+    * If using MiniShift, `python experiment.py` is a more convenient way to run an experiment that also retrieves Prometheus data to a local directory. `python plot_experiment.py` can then be used to generate basic Matplotlib plots from that data (but see the R plotting code for more advanced plots).
 
 ## Directories and Files
 * `config`
