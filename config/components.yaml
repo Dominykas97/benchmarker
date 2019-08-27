@@ -6,7 +6,7 @@
   ioMode: startup # one of: off, startup, regular
   numRequests: 2
   responseSize: 2 # KB
-  databaseLatency: 10 # ms
+  ioLatency: 10 # ms
   bandwidth: 1000 # Mbps
   intervalBetweenRequests: 10 # ms
 - parents:
@@ -17,18 +17,30 @@
   ioMode: startup # one of: off, startup, regular
   numRequests: 2
   responseSize: 2 # KB
-  databaseLatency: 10 # ms
+  ioLatency: 10 # ms
   bandwidth: 1000 # Mbps
   intervalBetweenRequests: 10 # ms
 - parents:
-    - 1
-    - 2
+    - 0
   cpuTime: 5 # ms
   memoryUsage: 0 # MB
   outputSize: 1 # KB
   ioMode: startup # one of: off, startup, regular
   numRequests: 2
   responseSize: 2 # KB
-  databaseLatency: 10 # ms
+  ioLatency: 10 # ms
+  bandwidth: 1000 # Mbps
+  intervalBetweenRequests: 10 # ms
+- parents:
+    - 1
+    - 2
+    - 3
+  cpuTime: 5 # ms
+  memoryUsage: 0 # MB
+  outputSize: 1 # KB
+  ioMode: startup # one of: off, startup, regular
+  numRequests: 2
+  responseSize: 2 # KB
+  ioLatency: 10 # ms
   bandwidth: 1000 # Mbps
   intervalBetweenRequests: 10 # ms

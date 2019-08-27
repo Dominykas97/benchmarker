@@ -16,6 +16,6 @@ metrics:
     filename: cpu
     query: flink_taskmanager_Status_JVM_CPU_Load
 workload:
-  messagesPerSecond: 1
+  batchesPerSecond: 1
   experimentDuration: 1 # in seconds
-  requestsPerMessage: 1
+  messagesPerBatch: 1

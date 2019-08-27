@@ -24,7 +24,8 @@ public class Benchmarker {
 
     /* Construct a chain of components, set the control server as the source of input, and perform an experiment */
     private static JobExecutionResult runExperiment() throws Exception {
-        System.out.println("Connecting to the control server " + config.controlHostname + ":" + config.controlPort);
+        System.out.println("Starting a new experiment and connecting to the control server " +
+                config.controlHostname + ":" + config.controlPort);
         DataStream<String> initial = env.socketTextStream(config.controlHostname, config.controlPort);
 
         // A list of DataStream nodes that could be used as inputs to new components

@@ -6,7 +6,7 @@
   ioMode: regular
   numRequests: 0
   responseSize: 10240 # KB
-  databaseLatency: 0 # ms
+  ioLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
 - parents:
@@ -17,7 +17,7 @@
   ioMode: regular
   numRequests: 0
   responseSize: 2 # KB
-  databaseLatency: 0 # ms
+  ioLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms
 - parents:
@@ -28,6 +28,6 @@
   ioMode: regular
   numRequests: 0
   responseSize: 9728 # KB
-  databaseLatency: 0 # ms
+  ioLatency: 0 # ms
   bandwidth: ??? # bytes/s
   intervalBetweenRequests: 0 # ms

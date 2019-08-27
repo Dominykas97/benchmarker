@@ -23,12 +23,15 @@
 
 \title{Automated Benchmarking of Container Applications}
 \author{Paulius Dilkas}
+\date{August 2019}
 
 \newcommand{\cmark}{\ding{51}}%
 \newcommand{\xmark}{\ding{55}}%
 \DeclareSIUnit{\million}{\text{million}}
+
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{fit,calc}
+
 %define a marking command
 \newcommand*{\tikzmk}[1]{\tikz[remember picture,overlay,] \node (#1)
   {};\ignorespaces}
@@ -49,6 +52,7 @@
 \definecolor{lightgray}{rgb}{.9,.9,.9}
 \definecolor{darkgray}{rgb}{.4,.4,.4}
 \definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
 \lstdefinelanguage{JavaScript}{
   keywords={break, case, catch, continue, debugger, default, delete, do, else, false, finally, for, function, if, in, instanceof, new, null, return, switch, this, throw, true, try, typeof, var, void, while, with},
   morecomment=[l]{//},
@@ -233,11 +237,10 @@ hostnames and port numbers as well as:
 \item[\texttt{workload}] defines how many messages to send, and at what
   intervals. More specifically, it contains:
   \begin{description}
-  \item[\texttt{messagesPerSecond}:] how often to send messages.
+  \item[\texttt{batchesPerSecond}:] how often to send batches of messages.
   \item[\texttt{experimentDuration}:] how long the experiment should
     last.
-  \item[\texttt{requestsPerMessage}:] how many messages/requests to send
-    at a time.
+  \item[\texttt{messagesPerBatch}:] how many messages to send at a time.
   \end{description}
 \end{description}
 
@@ -347,9 +350,9 @@ metrics:
     query: flink_taskmanager_Status_JVM_CPU_Load
 
 workload:
-  messagesPerSecond: 1
+  batchesPerSecond: 1
   experimentDuration: 3 # in seconds
-  requestsPerMessage: 3
+  messagesPerBatch: 3
 \end{lstlisting}
   \caption{Example \texttt{global.yaml}}
   \label{fig:global}
@@ -765,7 +768,7 @@ modelling assumptions:
   construct the output string;
 \item $\texttt{outputSize} = \frac{\text{page size}}{\text{number of requests
       per load}} = \frac{\SI{3.03}{\mebi\byte}}{192} = \SI{16.16}{\kibi\byte}$;
-\item $\texttt{requestsPerMessage} = \text{number of requests per load} = 192$.
+\item $\texttt{messagesPerBatch} = \text{number of requests per load} = 192$.
 \end{itemize}
 
 \paragraph{A Machine Learning System}
@@ -836,7 +839,7 @@ a file, we introduce a number of new component-specific parameters:
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
 \item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
-\item[\texttt{databaseLatency}] is the amount of time spent between a request
+\item[\texttt{ioLatency}] is the amount of time spent between a request
   and receiving the first byte of the response (in \si{\milli\second}).
 \item[\texttt{bandwidth}] is the bandwidth for transferring the response (as the
   request is assumed to be small) (in
@@ -853,9 +856,9 @@ line~\ref{alg:main_sleep}. The function \texttt{mySleep} was added in order to
 ignore sleeping instructions for amounts of time smaller than
 \SI{15}{\milli\second} because most commonly-used operating systems have no
 support for this level of real-time behaviour control. We start by sleeping for
-\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{databaseLatency}}{\milli\second}
+\SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{ioLatency}}{\milli\second}
 to simulate the first delay between sending the request and receiving the data;
-other \texttt{databaseLatency} delays are incorporated into $s$ on
+other \texttt{ioLatency} delays are incorporated into $s$ on
 line~\ref{alg:s_plus_latency}. For each request, we gradually build up a linked
 list $L$ until it uses about
 \SI[number-math-rm=\mathnormal,parse-numbers=false]{\texttt{responseSize}}{\kibi\byte}
@@ -876,7 +879,7 @@ supposed to take $\frac{\texttt{responseSize}}{\texttt{bandwidth}}$ time, so we
 add the difference between the expectation and the reality to the amount of time
 the algorithm sleeps at the end of each iteration. If this is not the final
 iteration of the outer for loop, we also add \texttt{intervalbBetweenRequests}
-and \texttt{databaseLatency} as well. The function of $s$ is to collect multiple
+and \texttt{ioLatency} as well. The function of $s$ is to collect multiple
 reasons to sleep into a single call to \texttt{mySleep} as well as to take into
 account the amount of time it takes to build the linked list. If $s$ is negative
 or too small, we let it influence the simulation of the next request so that the
@@ -885,7 +888,7 @@ desired amount of time and reset $s$ back to zero.
 
 \begin{algorithm}
   \SetKwData{numRequests}{numRequests}
-  \SetKwData{databaseLatency}{databaseLatency}
+  \SetKwData{ioLatency}{ioLatency}
   \SetKwData{responseSize}{responseSize}
   \SetKwData{nodeSize}{NODE\_SIZE}
   \SetKwData{bandwidth}{bandwidth}
@@ -898,7 +901,7 @@ desired amount of time and reset $s$ back to zero.
   \SetKwProg{Function}{Function}{}{end}
   \tikzmk{A}$s \leftarrow 0$\;\tikzmk{B}
   \boxitthree{cyan}
-  \mySleep{\textcolor{red}{\databaseLatency}}\;
+  \mySleep{\textcolor{red}{\ioLatency}}\;
   \For{$i \leftarrow 1$ \KwTo \numRequests}{
     $t_0 \leftarrow \time{}$\;
     \tikzmk{A}$L \leftarrow$ \new \LinkedList of 64-bit integers\;
@@ -913,7 +916,7 @@ desired amount of time and reset $s$ back to zero.
     t_0$\; \label{alg:subtract_time}
     \If{$i < \numRequests$}{
       $s \leftarrow s + \intervalBetweenRequests +
-      \databaseLatency$\; \label{alg:s_plus_latency}
+      \ioLatency$\; \label{alg:s_plus_latency}
     }
     \mySleep{\textcolor{red}{$s$}}\; \label{alg:main_sleep}
     \If{$s \ge \SI{15}{\milli\second}$}{
@@ -1117,7 +1120,7 @@ positive-to-negative trend in errors with respect to increasing
 If Algorithm~\ref{alg:io} is working as intended, total running time of the I/O
 simulation process should be
 \[
-  \texttt{numRequests} \times \left( \texttt{databaseLatency} +
+  \texttt{numRequests} \times \left( \texttt{ioLatency} +
   \frac{\texttt{responseSize}}{\texttt{bandwidth}} \right) +
 (\texttt{numRequests} - 1) \times \texttt{intervalBetweenRequests}.
 \]
@@ -1131,7 +1134,7 @@ values\footnote{Combinations of parameters resulting in high (above
 \begin{align*}
   \texttt{numRequests} &= 1, 2, 4, 8; \\
   \texttt{responseSize} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI{1000}{\mebi\byte}; \\
-  \texttt{databaseLatency} &= 0, 100, \SI{1000}{\milli\second}; \\
+  \texttt{ioLatency} &= 0, 100, \SI{1000}{\milli\second}; \\
   \texttt{bandwidth} &= 0.001, 0.01, 0.1, 1, 10, 100, \SI[per-mode=symbol]{1000}{\mebi\bit\per\second}; \\
   \texttt{intervalBetweenRequests} &= 0, 100, \SI{1000}{\milli\second}.
 \end{align*}
@@ -1158,8 +1161,8 @@ section we present an approach that can simulate usage (or workload) patterns
 represented by any computable function.
 
 Recall that a periodic workload is defined by the three parameters
-\texttt{experimentDuration}, \texttt{messagesPerSecond}, and
-\texttt{requestsPerMessage}. We define a `functional' workload as a 4-tuple
+\texttt{experimentDuration}, \texttt{batchesPerSecond}, and
+\texttt{messagesPerBatch}. We define a `functional' workload as a 4-tuple
 consisting of a \texttt{function} string and three floating-point numbers:
 \texttt{binWidth}, \texttt{initialX}, and \texttt{finalX}. The \texttt{function}
 variable contains a function of a single variable $x$ expressed in JavaScript

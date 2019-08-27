@@ -22,10 +22,10 @@ public class Component extends RichMapFunction<String, String> {
     // I/O-specific performance parameters (also from components.yaml)
     public IOMode ioMode; // one of: off, startup, regular; determines when to simulate I/O
     public int numRequests; // how many I/O requests to make
-    public double responseSize; // size of a single database response (in KB)
-    public double databaseLatency; // the amount of time between a request and the first byte of the response (in ms)
-    public double bandwidth; // database response bandwidth (in Mb/s)
-    public double intervalBetweenRequests; // how long to wait between database requests (in ms)
+    public double responseSize; // size of a single I/O response (in KB)
+    public double ioLatency; // the amount of time between a request and the first byte of the response (in ms)
+    public double bandwidth; // I/O response bandwidth (in Mb/s)
+    public double intervalBetweenRequests; // how long to wait between I/O requests (in ms)
 
     // A Flink-specific variable used to collect throughput data
     private transient Meter meter;
@@ -47,7 +47,7 @@ public class Component extends RichMapFunction<String, String> {
 
     // See the pseudo code in the report: it should be easier to follow
     private void simulateIO() throws Exception {
-        long latency = (long) (databaseLatency * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
+        long latency = (long) (ioLatency * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
         long sleepTime = (long) (intervalBetweenRequests * TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS));
         int numNodes = (int) (responseSize * BYTES_IN_KB / NODE_SIZE);
         long bandwidthLatency = (long) (NODE_SIZE / (bandwidth / 8 * BYTES_IN_MB) *
