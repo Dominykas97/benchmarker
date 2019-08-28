@@ -5,11 +5,11 @@
   outputSize: 52 # KB
   io:
     mode: regular
-    numRequests: 0
-    responseSize: 10240 # KB
-    latency: 0 # ms
-    bandwidth: ??? # bytes/s
-    intervalBetweenRequests: 0 # ms
+    numRequests: 1
+    responseSize: 10240
+    latency: 0
+    bandwidth: ???
+    intervalBetweenRequests: 0
 - parents:
     - 1
   cpuTime: 720000 # ms
@@ -17,11 +17,11 @@
   outputSize: 500 # KB
   io:
     mode: regular
-    numRequests: 0
-    responseSize: 2 # KB
-    latency: 0 # ms
-    bandwidth: ??? # bytes/s
-    intervalBetweenRequests: 0 # ms
+    numRequests: 2000
+    responseSize: 2
+    latency: 0
+    bandwidth: ???
+    intervalBetweenRequests: 0
 - parents:
     - 2
   cpuTime: 90000 # ms
@@ -29,8 +29,8 @@
   outputSize: 20480 # KB
   io:
     mode: regular
-    numRequests: 0
-    responseSize: 9728 # KB
-    latency: 0 # ms
-    bandwidth: ??? # bytes/s
-    intervalBetweenRequests: 0 # ms
+    numRequests: 21
+    responseSize: 9728
+    latency: 0
+    bandwidth: ???
+    intervalBetweenRequests: 0

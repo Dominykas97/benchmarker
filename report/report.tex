@@ -831,13 +831,15 @@ the performance of the system.
 
 \section{Input/Output Simulation} \label{sec:io}
 
-In order to simulate I/O interactions similar to accessing a database or reading
-a file, we introduce a number of new component-specific parameters, all under a
-parent parameter \texttt{io}:
+I/O simulation is meant to simulate a gradual memory growth, as if querying a
+database for relational data or downloading a large file. In order to add I/O
+simulation to a model, one can simply add an optional \texttt{io} clause to the
+description of a component in the \texttt{components.yaml} file, containing the
+following parameters:
 \begin{description}
-\item[$\texttt{mode} \in \{ \text{startup}, \text{regular}, \text{off} \}$]
-  determines when to simulate I/O: during the initialisation stage, with every
-  call to \texttt{map()}, or never.
+\item[$\texttt{mode} \in \{ \text{startup}, \text{regular} \}$]
+  determines when to simulate I/O: during the initialisation stage or with every
+  call to \texttt{map()}.
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
 \item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
@@ -849,6 +851,40 @@ parent parameter \texttt{io}:
 \item[\texttt{intervalBetweenRequests}] is the amount of time between receiving
   a response and sending another request (in \si{\milli\second}).
 \end{description}
+For example, Figure~\ref{listing:io} defines a component that receives its
+input from the control server. For each message, it takes \SI{5}{\milli\second}
+to execute, uses \SI{0}{\mebi\byte} of memory\footnote{Obviously, more memory
+  and/or CPU time may be needed to satisfy other parts of the component's
+  definition, in which case the declared numbers act like lower bounds.}, and
+produces an output string of \SI{1}{\kibi\byte}. Furthermore, for each message,
+it also performs an I/O simulation that consists of receiving two files of
+\SI{2}{\kibi\byte} each at \SI[per-mode=symbol]{1000}{\mebi\byte\per\second}, where the
+server `serving' the files has a latency of \SI{10}{\milli\second} and there is
+a \SI{10}{\milli\second} delay between downloading the files. Note that the
+top-level parameters such as \texttt{cpuTime} and \texttt{memoryUsage} take into
+account the running time and memory usage of I/O simulations.
+
+\begin{figure}
+  \centering
+  \begin{CenteredBox}
+\begin{lstlisting}
+- parents:
+    - 0
+  cpuTime: 5
+  memoryUsage: 0
+  outputSize: 1
+  io:
+    mode: regular
+    numRequests: 2
+    responseSize: 2
+    latency: 10
+    bandwidth: 1000
+    intervalBetweenRequests: 10
+\end{lstlisting}
+  \end{CenteredBox}
+  \caption{An example component with I/O simulation}
+  \label{listing:io}
+\end{figure}
 
 We can then use these variables to simulate an I/O dialogue as described in
 Algorithm~\ref{alg:io} (with unit conversion skipped for

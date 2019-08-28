@@ -21,7 +21,7 @@ public class Component extends RichMapFunction<String, String> {
     public double memoryUsage; // how much memory to fill in total (in MB)
     public double outputSize; // the size of the output data passed to the next component (in KB)
 
-    // These constants are measure experimentally (except the last two)
+    // These constants are measured experimentally (except the last two)
     private static final double BASE_MEMORY_CONSUMPTION = 2.409e7; // 23 MB
     private static final double BYTES_PER_BYTE = 1.016; // yes, this sounds super weird
     private static final double BYTES_PER_CHAR = 5.79;
@@ -34,7 +34,7 @@ public class Component extends RichMapFunction<String, String> {
         meter = getRuntimeContext()
                 .getMetricGroup()
                 .meter("componentThroughput", new MeterView(1));
-        if (io.mode == IOMode.STARTUP)
+        if (io != null && io.mode == IOMode.STARTUP)
             io.simulate();
     }
 
@@ -49,7 +49,7 @@ public class Component extends RichMapFunction<String, String> {
         // Memory calculations
         int stringLength = (int) (outputSize * BYTES_IN_KB / BYTES_PER_CHAR);
         double tempArraySize = memoryUsage * BYTES_IN_MB - BASE_MEMORY_CONSUMPTION - outputSize * BYTES_IN_KB;
-        if (io.mode != IOMode.OFF)
+        if (io != null)
             tempArraySize -= io.responseSize * BYTES_IN_KB;
         tempArraySize /= BYTES_PER_BYTE;
         int arraySize = Math.max((int) tempArraySize, stringLength); // arraySize >= stringLength
@@ -62,7 +62,7 @@ public class Component extends RichMapFunction<String, String> {
         String out = new String(memory, 0, stringLength);
 
         // Perform I/O if needed
-        if (io.mode == IOMode.REGULAR)
+        if (io != null && io.mode == IOMode.REGULAR)
             io.simulate();
 
         // Let's waste some CPU power testing the Collatz conjecture
