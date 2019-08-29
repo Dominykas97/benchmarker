@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
    as gathering and recording Prometheus data */
 public class ControlServer {
     private static Config config;
-    private static final String DATA_DIRECTORY = "data"; // where to save performance data
 
     /*
        From https://stackoverflow.com/questions/1201048/allowing-java-to-use-an-untrusted-certificate-for-ssl-https-connection
@@ -100,7 +99,7 @@ public class ControlServer {
             String data = br.readLine();
             br.close();
 
-            String filename = DATA_DIRECTORY + "/" + config.metrics.get(i).filename + "_" + index + ".json";
+            String filename = config.dataDirectory + "/" + config.metrics.get(i).filename + "_" + index + ".json";
             System.out.println("Writing this data to " + filename + ":");
             System.out.println(data);
 

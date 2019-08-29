@@ -9,7 +9,7 @@
   memoryUsage: 0 # MB
   outputSize: 1 # KB
   io:
-    mode: startup # startup or regular
+    mode: startup # startup, regular, or both
     numRequests: 2
     responseSize: 2 # KB
     latency: 10 # ms
@@ -22,7 +22,7 @@
   memoryUsage: 0 # MB
   outputSize: 1 # KB
   io:
-    mode: regular # startup or regular
+    mode: both # startup, regular, or both
     numRequests: 2
     responseSize: 2 # KB
     latency: 10 # ms

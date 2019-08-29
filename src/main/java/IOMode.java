@@ -6,5 +6,7 @@ public enum IOMode {
     @JsonProperty("startup")
     STARTUP,
     @JsonProperty("regular")
-    REGULAR;
+    REGULAR,
+    @JsonProperty("both")
+    BOTH;
 }

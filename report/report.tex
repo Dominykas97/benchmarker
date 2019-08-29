@@ -222,6 +222,8 @@ hostnames and port numbers as well as:
   Prometheus is configured to provide data using HTTP or (broken) HTTPS. The
   MiniShift add-on uses HTTPS, while a run-of-the-mill Prometheus Docker
   container uses HTTP.
+\item[\texttt{dataDirectory}:] the directory where the control server saves
+  performance data (should be configured as a persistent volume).
 \item[\texttt{numExperiments}] defines how many (identical) experiments to run.
 \item[\texttt{delayBetweenExperiments}] defines how long to wait between
   experiments (in \si{\minute}). It is recommended to set this to about
@@ -336,6 +338,7 @@ prometheusHostname: prometheus
 prometheusPort: 9090
 prometheusUsesHttps: true
 
+dataDirectory: data
 numExperiments: 1
 delayBetweenExperiments: 1 # in (*\si{\minute}*)
 
@@ -837,9 +840,9 @@ simulation to a model, one can simply add an optional \texttt{io} clause to the
 description of a component in the \texttt{components.yaml} file, containing the
 following parameters:
 \begin{description}
-\item[$\texttt{mode} \in \{ \text{startup}, \text{regular} \}$]
-  determines when to simulate I/O: during the initialisation stage or with every
-  call to \texttt{map()}.
+\item[$\texttt{mode} \in \{ \text{startup}, \text{regular}, \text{both} \}$]
+  determines when to simulate I/O: during the initialisation stage, with every
+  call to \texttt{map()}, or in both situations.
 \item[\texttt{numRequests}] is the number of request-response interactions
   between the component and the (simulated) data source.
 \item[\texttt{responseSize}] is the size of the response (in \si{\kibi\byte}).
@@ -1444,7 +1447,7 @@ integrating different parts of the system for two reasons:
 \item At this point in the development, it is not entirely clear what the
   primary use cases of the system are. The way the system is used for testing
   might not reflect some of the desired use cases.
-\end{itemize*}
+\end{itemize}
 
 \paragraph{Memory usage during I/O simulation}
 With the current implementation, each `file' `downloaded' during an I/O

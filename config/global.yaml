@@ -3,6 +3,7 @@ controlPort: 9998
 prometheusHostname: prometheus
 prometheusPort: 9090
 prometheusUsesHttps: true
+dataDirectory: data
 numExperiments: 1
 delayBetweenExperiments: 1 # in min
 metrics:

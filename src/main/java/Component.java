@@ -34,7 +34,7 @@ public class Component extends RichMapFunction<String, String> {
         meter = getRuntimeContext()
                 .getMetricGroup()
                 .meter("componentThroughput", new MeterView(1));
-        if (io != null && io.mode == IOMode.STARTUP)
+        if (io != null && (io.mode == IOMode.STARTUP || io.mode == IOMode.BOTH))
             io.simulate();
     }
 
@@ -62,7 +62,7 @@ public class Component extends RichMapFunction<String, String> {
         String out = new String(memory, 0, stringLength);
 
         // Perform I/O if needed
-        if (io != null && io.mode == IOMode.REGULAR)
+        if (io != null && (io.mode == IOMode.REGULAR || io.mode == IOMode.BOTH))
             io.simulate();
 
         // Let's waste some CPU power testing the Collatz conjecture
