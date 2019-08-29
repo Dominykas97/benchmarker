@@ -1386,15 +1386,103 @@ everything run in zero time.
 
 
 \section{Conclusions and Future Work} \label{sec:conclusions}
+
+We conclude with an overview of possible directions for future work, examining
+the weaknesses of our work as it is and considering ways to improve it.
+
+%\paragraph{Compatibility with OpenShift}
+%connections between services on OpenShift (special case: Prometheus and
+%TaskManager), not properly tested.
 % TODO: cover what needs to be done regarding OpenShift
 
+\paragraph{End-to-end latency}
+Another performance metric that could be useful and interesting to look at is
+the latency of the entire system, measured from the moment the control server
+sends its message, to the output of the last component being returned to the
+same server. With the current implementation, there are two issues regarding the
+implementation of this metric:
 \begin{itemize}
-\item Measuring end-to-end latency using RabbitMQ
-\item Support more total memory usage and memory usage during I/O simulation
-  using multiple arrays and linked lists (not bothering with this now because I
-  don't want to add unnecessary complexity that may or may not be working
-  sufficiently well).
+\item With the DAG support, there is no last component: a graph can
+  have any number of nodes with no out-links. Perhaps there could be an
+  additional parameter for each component that determines whether we are
+  interested in its output. The union of the `interesting' outputs could be
+  transmitted back to the server.
+\item Prometheus would have to collect information from the control server
+  itself. This means that the control server would have to concurrently run an
+  additional server in order to respond to requests by Prometheus. It might be
+  better in the long run to reimplement the control server using a platform with
+  native support for Prometheus, e.g., RabbitMQ.
 \end{itemize}
+
+\paragraph{Higher memory usage capabilities}
+Currently, memory usage (as implemented using an array of bytes) is limited to
+about \SI{2}{\gibi\byte}, and similar restrictions apply to the memory usage of
+I/O operations as well. Higher numbers can be supported by replacing the array
+and the linked list with an array of arrays and an array of linked lists,
+respectively. This feature was not implemented simply because it is more
+important to make sure that the product is working correctly and can be useful
+than it is to scale it to higher numbers, and this feature would add unnecessary
+complexity to core parts of the system.
+
+\paragraph{Topologies with cycles}
+We demonstrated how components can be arranged as any directed \emph{acyclic}
+graph, but what about cycles? Perhaps we want a message to travel around a
+cycle a few times, or maybe even an unbounded amount of times until the experiment
+terminates. As Apache Flink supports cyclic topologies (as long as the output is
+different with each iteration)
+\cite{stackoverflow,DBLP:journals/pvldb/EwenTKM12}, this could be a valuable
+direction for further work.
+
+\paragraph{Convenience}
+The system in its current state is a collection of tools and scripts, where one
+often needs to make changes to the Makefile and/or Python/R scripts in order to
+make the system do the right thing. Little development effort has gone into
+integrating different parts of the system for two reasons:
+\begin{itemize}
+\item OpenShift can act like a stubborn child and require several semi-manual
+  attempts in order to get it to behave as expected.
+\item At this point in the development, it is not entirely clear what the
+  primary use cases of the system are. The way the system is used for testing
+  might not reflect some of the desired use cases.
+\end{itemize*}
+
+\paragraph{Memory usage during I/O simulation}
+With the current implementation, each `file' `downloaded' during an I/O
+simulation is immediately marked for garbage collection. Alternatively, the
+`downloaded' data could be kept for a longer period of time, i.e.,
+\begin{itemize}
+\item if the I/O mode is set to \texttt{startup}, data structures constructed
+  during I/O simulation could be kept for the entire execution of the program;
+\item if the I/O mode is set to \texttt{regular}, the data could be kept until
+  the component finishes processing the message.
+\end{itemize}
+While both alternatives represent realistic real-life scenarios, keeping the
+data for longer would make memory usage more predictable. Perhaps both options
+could be implemented.
+
+\paragraph{Resource constraints}
+The initial goal of this project was to investigate how a variety of distributed
+applications behave under different resource constraints. So far, no constraints
+have been mentioned.
+
+On OpenShift, one can set CPU and memory constraints in several ways. First,
+each constraint can be declared either for a specific pod, or for the sum total
+of all pods. Second, we can either declare \emph{limits} or \emph{requests},
+i.e., upper or lower bounds respectively. Perhaps it would be most appropriate
+for our needs to set requests equal to limits, declaring them separately for
+each pod.
+
+CPU resources are measured in \emph{millicores}. For example, setting a CPU
+limit of 1500~millicores corresponds to allowing the application to use up
+to one and a half processor cores. This restriction can affect running time and
+thus can be analysed using the statistical methods developed for
+\texttt{cpuTime}.
+
+The situation with memory resource control is less optimistic. While we get to
+restrict total memory usage using familiar units of \si{\mebi\byte} and
+\si{\gibi\byte}, if the application tries to use more than the allocated amount
+of memory, it gets terminated by OpenShift. Hence memory usage can be measured
+but not controlled.
 
 \bibliographystyle{abbrv}
 \bibliography{report}
