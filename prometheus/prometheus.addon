@@ -14,6 +14,7 @@ oc label secret/prometheus-proxy app=prometheus -n #{namespace}
 oc label secret/prometheus-tls app=prometheus -n #{namespace}
 oc label sa/prometheus app=prometheus -n #{namespace}
 oc label clusterrolebinding/prometheus-cluster-reader app=prometheus
+oc label route/prometheus app=prometheus -n #{namespace}
 # Look maybe into modifying the route here
 # oc expose svc/prometheus --name=prometheus-2 --hostname=prometheus.#{routing-suffix} --tls=reencrypt --port=prometheus -l app=prometheus -n #{namespace}
 

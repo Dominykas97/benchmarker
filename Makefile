@@ -1,20 +1,20 @@
-PROJECT_NAME := benchmarking-internship
+PROJECT_NAME := benchmarking-project
 
 build: package bench start control prom
 package:
 	mvn clean package
 bench:
-	docker build -f docker/Dockerfile.bench -t dilkas/benchmarker-flink --no-cache ./
-	docker push dilkas/benchmarker-flink
+	docker build -f docker/Dockerfile.bench -t dominykas97/benchmarker-flink --no-cache ./
+	docker push dominykas97/benchmarker-flink
 start:
-	docker build -f docker/Dockerfile.start -t dilkas/benchmarker-start --no-cache ./
-	docker push dilkas/benchmarker-start
+	docker build -f docker/Dockerfile.start -t dominykas97/benchmarker-start --no-cache ./
+	docker push dominykas97/benchmarker-start
 control:
-	docker build -f docker/Dockerfile.control -t dilkas/benchmarker-control --no-cache ./
-	docker push dilkas/benchmarker-control
+	docker build -f docker/Dockerfile.control -t dominykas97/benchmarker-control --no-cache ./
+	docker push dominykas97/benchmarker-control
 prom:
-	docker build -f docker/Dockerfile.prom -t dilkas/benchmarker-prom --no-cache ./
-	docker push dilkas/benchmarker-prom
+	docker build -f docker/Dockerfile.prom -t dominykas97/benchmarker-prom --no-cache ./
+	docker push dominykas97/benchmarker-prom
 
 prom-mini-up:
 	minishift addon apply prometheus --addon-env namespace=$(PROJECT_NAME)
@@ -29,23 +29,23 @@ clean-prom:
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/prometheus-service.yaml
 up-prom:
 	oc -n $(PROJECT_NAME) create configmap prom-config --from-file=config/prometheus.yml
-	oc -n $(PROJECT_NAME) create -f docker/openshift/prometheus-pvc.yaml
+# 	oc -n $(PROJECT_NAME) create -f docker/opemnshift/prometheus-pvc.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/prometheus-deploymentconfig.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/prometheus-imagestream.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/prometheus-service.yaml
 
 clean-all:
-#	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
-#	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pvc.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pod.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pvc.yaml
+	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-service.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/taskmanager-service.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-service.yaml
-	-oc -n $(PROJECT_NAME) delete -f docker/openshift/control-pod.yaml
 	-oc -n $(PROJECT_NAME) delete -f docker/openshift/jobmanager-pod.yaml
 
 up-all:
-#	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
-#	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pvc.yaml
+	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pv.yaml # NOTE: for MiniShift only
+	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pvc.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/control-pod.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/jobmanager-pod.yaml
 	oc -n $(PROJECT_NAME) create -f docker/openshift/control-service.yaml

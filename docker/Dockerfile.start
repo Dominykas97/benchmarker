@@ -1,4 +1,4 @@
-FROM dilkas/benchmarker-flink
+FROM dominykas97/benchmarker-flink
 
 ADD target/benchmarker-0.1.jar ./
 

@@ -12,7 +12,7 @@ spec:
     env:
     - name: JOB_MANAGER_RPC_ADDRESS
       value: jobmanager
-    image: dilkas/benchmarker-flink
+    image: dominykas97/benchmarker-flink
     name: taskmanager
     ports:
     - containerPort: 6121

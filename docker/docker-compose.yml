@@ -1,7 +1,7 @@
 version: "3"
 services:
   jobmanager:
-    image: dilkas/benchmarker-flink
+    image: dominykas97/benchmarker-flink
     expose:
       - "9250"
     ports:
@@ -15,13 +15,13 @@ services:
     restart: "no"
 
   control:
-    image: dilkas/benchmarker-control
+    image: dominykas97/benchmarker-control
     ports:
       - "9998:9998"
     restart: "no"
 
   taskmanager:
-    image: dilkas/benchmarker-flink
+    image: dominykas97/benchmarker-flink
     expose:
       - "9250"
     ports:
@@ -36,11 +36,11 @@ services:
     restart: "no"
 
   start:
-    image: dilkas/benchmarker-start
+    image: dominykas97/benchmarker-start
     restart: "no"
 
   prometheus:
     image: prom/prometheus
-    #image: dilkas/benchmarker-prom
+    #image: dominykas97/benchmarker-prom
     ports:
       - "9090:9090" # Web UI
