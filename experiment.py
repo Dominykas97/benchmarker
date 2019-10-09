@@ -4,8 +4,8 @@ import yaml
 
 # NOTE: this way to run and capture an experiment is specific to MiniShift
 
-PROJECT_NAME = 'benchmarking-internship' # As defined in the MiniShift/OpenShift system
-HOSTFOLDER_NAME = 'hostfolder'
+PROJECT_NAME = 'benchmarking-project' # As defined in the MiniShift/OpenShift system
+HOSTFOLDER_NAME = '/mnt/sda1/benchmarker_data'
 PERSISTENT_VOLUME_DIR_NAME = 'benchmarker_data'
 COMPONENTS_FILE = 'config/components.yaml'
 BASE_MEMORY_CONSUMPTION = 40 << 20
@@ -23,6 +23,7 @@ def run_experiment(filename_suffix = ''):
     while True:
         status = subprocess.run(['oc', '-n', PROJECT_NAME, 'get', 'po', 'start'],
                                 stdout=subprocess.PIPE).stdout.decode('utf-8').split()[7]
+        print(status)
         if status == 'Completed':
             break
 
@@ -30,10 +31,13 @@ def run_experiment(filename_suffix = ''):
     time.sleep(1)
     files = subprocess.run(['minishift', 'ssh', 'ls', PERSISTENT_VOLUME_DIR_NAME],
                            stdout=subprocess.PIPE).stdout.decode('utf-8').split()
+    print(files)
     for f in files:
         parts_of_f = f.split('_')
         new_name = parts_of_f[0] + filename_suffix + '_' + parts_of_f[1]
-        command = 'minishift ssh "touch {}/{}; echo \`cat {}/{}\` > {}/{}"'.format(
+        #command = 'minishift ssh "touch {}/{}; echo \`cat {}/{}\` > {}/{}"'.format(
+            #HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, f, HOSTFOLDER_NAME, new_name)
+        command = 'minishift ssh "touch {}/{}; cat {}/{} >> {}/{}"'.format(
             HOSTFOLDER_NAME, new_name, PERSISTENT_VOLUME_DIR_NAME, f, HOSTFOLDER_NAME, new_name)
         subprocess.Popen(command, shell=True)
 
